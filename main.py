@@ -27,7 +27,7 @@ class OCRApp:
         self.root.title("OCR to Excel Converter")
         self.root.geometry("1280x720")
         # Set application icon to 'icon.png'
-        self.icon_image = tk.PhotoImage(file='icons/icon.png')
+        self.icon_image = tk.PhotoImage(file=resource_path('icons/icon.png'))
         self.root.iconphoto(False, self.icon_image)
         self.style = ttk.Style('cosmo')  # Use a modern theme
         self.ocr_engine = tk.StringVar()
@@ -52,14 +52,14 @@ class OCRApp:
         self.center_frame.pack(expand=True)
 
         # Logo
-        logo_img = Image.open("icons/icon.png")
+        logo_img = Image.open(resource_path("icons/icon.png"))
         logo_img = logo_img.resize((100, 100), Image.LANCZOS)
         self.logo_photo = ImageTk.PhotoImage(logo_img)
         self.logo_label = ttk.Label(self.center_frame, image=self.logo_photo)
         self.logo_label.pack(pady=(20, 10))
 
         # Output Directory Selection
-        folder_icon = Image.open("icons/folder.png")
+        folder_icon = Image.open(resource_path("icons/folder.png"))
         folder_icon = folder_icon.resize((20, 20), Image.LANCZOS)
         self.folder_icon_photo = ImageTk.PhotoImage(folder_icon)
         output_dir_button = ttk.Button(self.center_frame, text="Select Output Directory", 
@@ -93,7 +93,7 @@ class OCRApp:
         yellow_dropdown.bind('<<ComboboxSelected>>', self.update_thresholds)
 
         # Upload Button
-        upload_icon = Image.open("icons/upload.png")
+        upload_icon = Image.open(resource_path("icons/upload.png"))
         upload_icon = upload_icon.resize((20, 20), Image.LANCZOS)
         self.upload_icon_photo = ImageTk.PhotoImage(upload_icon)
         self.upload_button = ttk.Button(self.center_frame, text="Upload Image", 
@@ -102,7 +102,7 @@ class OCRApp:
         self.upload_button.pack(pady=(0, 10))
 
         # Screenshot Button
-        screenshot_icon = Image.open("icons/screenshot.png")
+        screenshot_icon = Image.open(resource_path("icons/screenshot.png"))
         screenshot_icon = screenshot_icon.resize((20, 20), Image.LANCZOS)
         self.screenshot_icon_photo = ImageTk.PhotoImage(screenshot_icon)
         self.screenshot_button = ttk.Button(self.center_frame, text="Screenshot", 
@@ -404,7 +404,7 @@ class OCRApp:
         top_inner_frame.pack(anchor='center')
 
         # Add small logo
-        small_logo_img = Image.open("icons/icon.png")
+        small_logo_img = Image.open(resource_path("icons/icon.png"))
         small_logo_img = small_logo_img.resize((50, 50), Image.LANCZOS)
         self.small_logo_photo = ImageTk.PhotoImage(small_logo_img)
         logo_label = ttk.Label(top_inner_frame, image=self.small_logo_photo)
@@ -419,14 +419,14 @@ class OCRApp:
         upload_button.pack(side=tk.LEFT, padx=(0, 10))
 
         # Add Screenshot Button with Icon
-        screenshot_icon = Image.open(os.path.join('icons', 'screenshoticon.png'))
+        screenshot_icon = Image.open(resource_path(os.path.join('icons', 'screenshoticon.png')))
         screenshot_icon = screenshot_icon.resize((30, 30), Image.LANCZOS)
         self.screenshot_icon_photo = ImageTk.PhotoImage(screenshot_icon)
         screenshot_button = ttk.Button(top_inner_frame, image=self.screenshot_icon_photo, command=self.take_screenshot)
         screenshot_button.pack(side=tk.LEFT, padx=(0, 10))
 
         # Add Home Button with Icon
-        home_icon = Image.open(os.path.join('icons', 'home.png'))
+        home_icon = Image.open(resource_path(os.path.join('icons', 'home.png')))
         home_icon = home_icon.resize((30, 30), Image.LANCZOS)
         self.home_icon_photo = ImageTk.PhotoImage(home_icon)
         home_button = ttk.Button(top_inner_frame, image=self.home_icon_photo, command=self.reset_ui)
@@ -533,15 +533,15 @@ class OCRApp:
         accuracy_label.pack(pady=(0, 10))
 
         # Icons for accuracy levels
-        green_icon = Image.open(os.path.join('icons', 'green_circle.png'))
+        green_icon = Image.open(resource_path(os.path.join('icons', 'green_circle.png')))
         green_icon = green_icon.resize((20, 20), Image.LANCZOS)
         self.green_icon_photo = ImageTk.PhotoImage(green_icon)
 
-        yellow_icon = Image.open(os.path.join('icons', 'yellow_circle.png'))
+        yellow_icon = Image.open(resource_path(os.path.join('icons', 'yellow_circle.png')))
         yellow_icon = yellow_icon.resize((20, 20), Image.LANCZOS)
         self.yellow_icon_photo = ImageTk.PhotoImage(yellow_icon)
 
-        red_icon = Image.open(os.path.join('icons', 'red_circle.png'))
+        red_icon = Image.open(resource_path(os.path.join('icons', 'red_circle.png')))
         red_icon = red_icon.resize((20, 20), Image.LANCZOS)
         self.red_icon_photo = ImageTk.PhotoImage(red_icon)
 
@@ -578,7 +578,7 @@ class OCRApp:
         disclaimer_frame.pack(pady=(10, 10))
 
         # Info Icon
-        info_icon = Image.open(os.path.join('icons', 'info.png'))
+        info_icon = Image.open(resource_path(os.path.join('icons', 'info.png')))
         info_icon = info_icon.resize((20, 20), Image.LANCZOS)
         self.info_icon_photo = ImageTk.PhotoImage(info_icon)
 
