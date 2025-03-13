@@ -3,8 +3,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# models tesseract
-models/tesseract/
+# models
+models/
 
 # Virtual environment
 venv/
