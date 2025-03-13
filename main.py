@@ -11,6 +11,11 @@ import tempfile
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 import subprocess
+import os
+from utils import resource_path
+
+os.environ["PADDLE_OCR_BASE_DIR"] = resource_path("./models/paddleocr")
+os.environ["EASYOCR_MODULE_PATH"] = resource_path("./models/easyocr")
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)8s] %(message)s')
