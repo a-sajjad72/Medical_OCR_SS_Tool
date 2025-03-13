@@ -3,9 +3,6 @@ from tkinter import filedialog
 from PIL import Image, ImageTk
 import os
 import logging
-from OCR_Modules.paddleOCR import initialize_ocr_SLANet_LCNetV2, process_image as paddle_process_image, group_into_rows as paddle_group_into_rows, save_as_xlsx as paddle_save_as_xlsx, draw_bounding_boxes as paddle_draw_bounding_boxes
-from OCR_Modules.tesseractOCR import initialize_tesseract, process_image as tesseract_process_image, group_into_rows as tesseract_group_into_rows, save_as_xlsx as tesseract_save_as_xlsx, draw_bounding_boxes as tesseract_draw_bounding_boxes
-from OCR_Modules.easyOCR import initialize_easyocr, process_image as easyocr_process_image, group_into_rows as easyocr_group_into_rows, save_as_xlsx as easyocr_save_as_xlsx, draw_bounding_boxes as easyocr_draw_bounding_boxes
 import threading
 import tempfile
 import ttkbootstrap as ttk
@@ -233,6 +230,14 @@ class OCRApp:
             self.progress_bar.pack_forget()
 
     def process_with_paddleocr(self, file_path):
+        from OCR_Modules.paddleOCR import (
+            initialize_ocr_SLANet_LCNetV2,
+            process_image as paddle_process_image,
+            group_into_rows as paddle_group_into_rows,
+            save_as_xlsx as paddle_save_as_xlsx,
+            draw_bounding_boxes as paddle_draw_bounding_boxes,
+        )
+
         ocr = initialize_ocr_SLANet_LCNetV2()
         data = paddle_process_image(file_path, ocr)
         rows = paddle_group_into_rows(data)
@@ -270,6 +275,14 @@ class OCRApp:
 
     def process_with_tesseract(self, file_path):
         try:
+            from OCR_Modules.tesseractOCR import (
+                initialize_tesseract,
+                process_image as tesseract_process_image,
+                group_into_rows as tesseract_group_into_rows,
+                save_as_xlsx as tesseract_save_as_xlsx,
+                draw_bounding_boxes as tesseract_draw_bounding_boxes,
+            )
+
             ocr = initialize_tesseract()
             data = tesseract_process_image(file_path, ocr)
 
@@ -317,6 +330,14 @@ class OCRApp:
 
     def process_with_easyocr(self, file_path):
         try:
+            from OCR_Modules.easyOCR import (
+                initialize_easyocr,
+                process_image as easyocr_process_image,
+                group_into_rows as easyocr_group_into_rows,
+                save_as_xlsx as easyocr_save_as_xlsx,
+                draw_bounding_boxes as easyocr_draw_bounding_boxes,
+            )
+
             reader = initialize_easyocr()
             data = easyocr_process_image(file_path, reader)
 
