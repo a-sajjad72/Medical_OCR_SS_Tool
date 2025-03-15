@@ -283,7 +283,7 @@ class OCRApp:
                 draw_bounding_boxes as tesseract_draw_bounding_boxes,
             )
 
-            ocr = initialize_tesseract()
+            ocr = initialize_tesseract(resource_path("./models/tesseract/tesseract.exe"))
             data = tesseract_process_image(file_path, ocr)
 
             if not data:

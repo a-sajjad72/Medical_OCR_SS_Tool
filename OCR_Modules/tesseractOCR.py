@@ -13,10 +13,10 @@ from PIL import Image, ImageDraw, ImageFont
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def initialize_tesseract():
+def initialize_tesseract(path_to_tesseract):
     logger.info("Initializing Tesseract OCR...")
     # Set Tesseract command path if necessary (uncomment and set your path)
-    # pytesseract.pytesseract.tesseract_cmd = r'/path/to/tesseract'
+    pytesseract.pytesseract.tesseract_cmd = path_to_tesseract
     return pytesseract
 
 def process_image(file_path, ocr):
