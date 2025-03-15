@@ -2,7 +2,7 @@ paddleocr
 paddlepaddle
 pandas
 opencv-python
-numpy
+numpy<2
 Pillow
 requests
 openpyxl
