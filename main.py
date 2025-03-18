@@ -8,8 +8,7 @@ import tempfile
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 import subprocess
-import os
-from utils import resource_path
+from utils import resource_path, get_tesseract_path
 import traceback
 import sys
 import site
@@ -300,7 +299,9 @@ class OCRApp:
                 draw_bounding_boxes as tesseract_draw_bounding_boxes,
             )
 
-            ocr = initialize_tesseract(resource_path("./models/tesseract/tesseract.exe"))
+            ocr = initialize_tesseract(
+                resource_path(get_tesseract_path())
+            )
             data = tesseract_process_image(file_path, ocr)
 
             if not data:
