@@ -10,6 +10,14 @@ from ttkbootstrap.constants import *
 import subprocess
 import os
 from utils import resource_path
+import traceback
+import sys
+import site
+
+if site.USER_SITE is None:
+    # Set a fallback value. You might choose resource_path(".") if that works best.
+    site.USER_SITE = resource_path(".")
+
 
 os.environ["PADDLE_OCR_BASE_DIR"] = resource_path("./models/paddleocr")
 os.environ["EASYOCR_MODULE_PATH"] = resource_path("./models/easyocr")
@@ -135,6 +143,10 @@ class OCRApp:
             self.yellow_threshold.set(self.green_threshold.get())
 
     def reset_ui(self):
+        if sys.platform == "darwin":
+            self.root.update_idletasks()
+            self.root.update()
+
         # Hide the top, left, middle, and right frames
         self.top_frame.pack_forget()
         self.left_frame.pack_forget()
@@ -201,8 +213,13 @@ class OCRApp:
         return image
 
     def process_image(self, file_path):
-        # Start a new thread for processing
-        processing_thread = threading.Thread(target=self._process_image_thread, args=(file_path,))
+        # Use main thread for macOS UI operations
+        if sys.platform == "darwin":
+            self.root.after(0, self._process_image_thread, file_path)
+        else:
+            processing_thread = threading.Thread(
+                target=self._process_image_thread, args=(file_path,)
+            )
         processing_thread.start()
 
     def _process_image_thread(self, file_path):
@@ -384,6 +401,12 @@ class OCRApp:
             self.status_label.config(text=f"Unexpected error: {str(e)}\nPlease try a different image or OCR engine.")
 
     def display_results(self, image_path, excel_path):
+        if sys.platform == "darwin":
+            self.root.after(0, self._safe_display_results, image_path, excel_path)
+        else:
+            self._safe_display_results(image_path, excel_path)
+
+    def _safe_display_results(self, image_path, excel_path):
         self.reorganize_layout()
 
         # Clear previous images
@@ -410,6 +433,17 @@ class OCRApp:
         self.setup_sidebar()
 
     def reorganize_layout(self):
+        if sys.platform == "darwin" and not self.root.winfo_exists():
+            return
+
+        # Main thread check for macOS
+        if (
+            sys.platform == "darwin"
+            and threading.current_thread() != threading.main_thread()
+        ):
+            self.root.after(0, self.reorganize_layout)
+            return
+
         # Hide the center frame
         self.center_frame.pack_forget()
 
@@ -421,6 +455,7 @@ class OCRApp:
         self.top_frame.pack(side=tk.TOP, fill=tk.X, pady=(10, 0))
 
         # Create a frame inside top_frame to center widgets
+        self.root.update_idletasks()  # Refresh window state
         top_inner_frame = ttk.Frame(self.top_frame)
         top_inner_frame.pack(anchor='center')
 
