@@ -9,6 +9,7 @@ OCR to Excel Converter is a Python-based desktop application that processes imag
 - [Setup](#setup)
 - [Usage](#usage)
 - [Building the Executable](#building-the-executable)
+- [Requirements](#requirements)
 - [Project Structure](#project-structure)
 - [Troubleshooting](#troubleshooting)
 - [License](#license)
@@ -16,9 +17,9 @@ OCR to Excel Converter is a Python-based desktop application that processes imag
 ## Features
 
 - Support for multiple OCR engines:
-  - PaddleOCR
-  - EasyOCR
-  - Tesseract via pytesseract (requres manual installation)
+  - PaddleOCR (downloaded automatically in the development environment)
+  - EasyOCR (downloaded automatically in the development environment)
+  - Tesseract via pytesseract (requires manual installation)
 - Confidence threshold configuration for output highlighting
 - GUI for image upload and screenshot capture
 - Automatic processing and Excel output
@@ -65,8 +66,9 @@ OCR to Excel Converter is a Python-based desktop application that processes imag
 ## Setup
 
 - **Tesseract:**  
-  - The Tesseract OCR model must be installed manually. The application will download PaddleOCR, EasyOCR, and other necessary models automatically in the development environment.
-  - If Tesseract is installed in a location different from the default specified in `utils.py` (i.e. `utils.TESSERACT_PATH`), make sure to update that path accordingly.
+  - **Manual Installation Required:** The Tesseract OCR model must be installed manually on your machine.  
+  - **Installation Guide:** For detailed installation instructions, please refer to the [Tesseract OCR Installation Guide](https://tesseract-ocr.github.io/tessdoc/Installation.html).  
+  - **Custom Path:** If Tesseract is installed in a location different from the default specified in `utils.py` (i.e. `utils.TESSERACT_PATH`), update that path accordingly.
 
 - **Models:**
   - All required models for PaddleOCR and EasyOCR are automatically downloaded when you run the application in the development environment.
@@ -103,20 +105,37 @@ The project includes PyInstaller commands to bundle the application into a stand
 
    *Make sure to adjust file paths as necessary for your environment.*
 
+## Requirements
+
+- **Python Version:**  
+  The project has been tested with Python **3.12.7**. All libraries including Torch and others are compatible with this version.
+  
+- **Tesseract:**  
+  Ensure Tesseract is installed manually on your machine. Adjust `utils.TESSERACT_PATH` in the code if Tesseract is located in a non-default path.
+
+- **Other Libraries:**  
+  The required libraries for PaddleOCR, EasyOCR, and Tesseract integration are listed in the requirements files.
+
 ## Project Structure
 
 ```
 Medical_OCR_SS_Tool/
 │
+├── __pycache__/             # Compiled Python files (created automatically)
 ├── build/                   # Build output directory (created by PyInstaller)
+├── dist/                    # Distribution output directory (created by PyInstaller)
 ├── icons/                   # Application icons and images
-├── models/                  # OCR model files for PaddleOCR, EasyOCR and Tesseract (if installed in the custom path)
-├── OCR_Modules/             # OCR engine modules (e.g. [`easyOCR.py`](Medical_OCR_SS_Tool/OCR_Modules/easyOCR.py), [`paddleOCR.py`](Medical_OCR_SS_Tool/OCR_Modules/paddleOCR.py), [`tesseractOCR.py`](Medical_OCR_SS_Tool/OCR_Modules/tesseractOCR.py))
-├── __pycache__/
-├── main.py                  # Main application file containing [`OCRApp`](d:/paddle-ocr/Medical_OCR_SS_Tool/main.py) class
-├── requirements.txt         # Python dependencies for the project
-├── requirements_paddle.txt  # Additional dependencies for PaddleOCR
-└── utils.py                 # Utility functions (e.g. [`resource_path`](Medical_OCR_SS_Tool/utils.py))
+├── models/                  # OCR model files for PaddleOCR, EasyOCR, and Tesseract (if installed in a custom path)
+├── OCR_Modules/             # OCR engine modules (e.g. easyOCR.py, paddleOCR.py, tesseractOCR.py)
+├── test/                    # Test files and output (e.g., test1.png, test1.xlsx)
+├── test2/                   # Additional test files and output (e.g., test2.png, test2.xlsx)
+├── LICENSE                  # License file for the project
+├── main.py                  # Main application file containing the OCRApp class
+├── README.md                # Project documentation
+├── requirements.txt         # Python dependencies for the frozen environment
+├── requirements_paddle.txt  # Dependency names for development
+└── utils.py                 # Utility functions (e.g. resource_path, get_tesseract_path, etc.)
+
 ```
 
 ## Troubleshooting
