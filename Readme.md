@@ -148,35 +148,19 @@ The project includes PyInstaller commands to bundle the application into a stand
 
    *Make sure to adjust file paths as necessary for your environment.*
 
-## Project Structure
-
-```
-Medical_OCR_SS_Tool/
-│
-├── __pycache__/             # Compiled Python files (created automatically)
-├── build/                   # Build output directory (created by PyInstaller)
-├── dist/                    # Distribution output directory (created by PyInstaller)
-├── icons/                   # Application icons and images
-├── models/                  # OCR model files for PaddleOCR, EasyOCR, and Tesseract (if installed in a custom path)
-├── OCR_Modules/             # OCR engine modules (e.g. easyOCR.py, paddleOCR.py, tesseractOCR.py)
-├── test/                    # Test files and output (e.g., test1.png, test1.xlsx)
-├── test2/                   # Additional test files and output (e.g., test2.png, test2.xlsx)
-├── LICENSE                  # License file for the project
-├── main.py                  # Main application file containing the OCRApp class
-├── README.md                # Project documentation
-├── requirements.txt         # Python dependencies for the frozen environment
-├── requirements_paddle.txt  # Dependency names for development
-└── utils.py                 # Utility functions (e.g. resource_path, get_tesseract_path, etc.)
-
-```
-
 ## Troubleshooting
 
-- **Tesseract Installation:**  
-  If Tesseract is not found or not working as expected, ensure it is installed manually and that the path in `utils.py` (i.e., `utils.TESSERACT_PATH`) is adjusted accordingly.
+### Tesseract Issues
 
-- **PyInstaller Build Issues:**  
-  If you encounter issues while building with PyInstaller, refer to the PyInstaller commands provided above and verify that all file paths and dependencies are correct for your target OS.
+- **Path not found**: Verify installation and check `.env` file
+- **Missing languages**: Install tesseract-lang (macOS) or reinstall with additional languages (Windows)
+- **Version mismatch**: Requires Tesseract 5.3.0+
+
+### Common Errors
+
+- `TESSDATA_PREFIX not set`: Verify tessdata directory exists
+- `No module named...`: Reinstall requirements.txt dependencies
+- `Permission denied`: Run as administrator (Windows) or use `sudo` (macOS)
 
 ## License
 
