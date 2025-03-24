@@ -8,13 +8,13 @@ import tempfile
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 import subprocess
-from utils import resource_path, get_tesseract_path
+from utils import resource_path, get_tessbin_path
 import traceback
 import sys
 import site
 
 if site.USER_SITE is None:
-    # Set a fallback value. You might choose resource_path(".") if that works best.
+    # Set a fallback value.
     site.USER_SITE = resource_path(".")
 
 
@@ -299,9 +299,7 @@ class OCRApp:
                 draw_bounding_boxes as tesseract_draw_bounding_boxes,
             )
 
-            ocr = initialize_tesseract(
-                resource_path(get_tesseract_path())
-            )
+            ocr = initialize_tesseract(get_tessbin_path())
             data = tesseract_process_image(file_path, ocr)
 
             if not data:
