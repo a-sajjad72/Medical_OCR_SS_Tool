@@ -104,13 +104,16 @@ All Python package requirements are listed in `requirements.txt`. Key dependenci
 
 ## Setup
 
-- **Tesseract:**  
-  - **Manual Installation Required:** The Tesseract OCR model must be installed manually on your machine.  
-  - **Installation Guide:** For detailed installation instructions, please refer to the [Tesseract OCR Installation Guide](https://tesseract-ocr.github.io/tessdoc/Installation.html).  
-  - **Custom Path:** If Tesseract is installed in a location different from the default specified in `utils.py` (i.e. `utils.TESSERACT_PATH`), update that path accordingly.
+1. **Configuration:**
 
-- **Models:**
-  - All required models for PaddleOCR and EasyOCR are automatically downloaded when you run the application in the development environment.
+   - For non-standard Tesseract installations, edit the `.env` file
+   - Models for PaddleOCR/EasyOCR will auto-download on first run
+
+2. **Verify Paths:**
+   ```sh
+   python -c "from utils import get_tessbin_path, get_tessdata_path; print(f'Tesseract: {get_tessbin_path()}\nTessdata: {get_tessdata_path()}')"
+   ```
+
 
 ## Usage
 
@@ -120,11 +123,12 @@ All Python package requirements are listed in `requirements.txt`. Key dependenci
    python main.py
    ```
 
-2. **Configure and Process:**
-   - Choose the OCR engine using the dropdown menu.
-   - Adjust the confidence thresholds (high and medium) as needed.
-   - Upload an image or use the screenshot feature.
-   - The extracted data will be processed and saved as an Excel file with annotations.
+2. **Application workflow:**
+   - Select OCR engine from dropdown
+   - Adjust confidence thresholds (High/Medium)
+   - Upload image or capture screenshot
+   - Processed Excel file saves automatically
+   - Results shown with bounding box visualization
 
 ## Building the Executable
 
