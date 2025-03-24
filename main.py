@@ -8,7 +8,7 @@ import tempfile
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 import subprocess
-from utils import resource_path, get_tessbin_path
+from utils import resource_path, get_tessbin_path, get_tessdata_path
 import traceback
 import sys
 import site
@@ -20,7 +20,7 @@ if site.USER_SITE is None:
 
 os.environ["PADDLE_OCR_BASE_DIR"] = resource_path("./models/paddleocr")
 os.environ["EASYOCR_MODULE_PATH"] = resource_path("./models/easyocr")
-
+os.environ["TESSDATA_PREFIX"] = get_tessdata_path()
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)8s] %(message)s')
 logger = logging.getLogger(__name__)
