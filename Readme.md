@@ -18,12 +18,13 @@ OCR to Excel Converter is a Python-based desktop application that processes imag
 ## Features
 
 - Support for multiple OCR engines:
-  - PaddleOCR (downloaded automatically in the development environment)
-  - EasyOCR (downloaded automatically in the development environment)
-  - Tesseract via pytesseract (requires manual installation)
-- Confidence threshold configuration for output highlighting
-- GUI for image upload and screenshot capture
-- Automatic processing and Excel output
+  - PaddleOCR (auto-downloads models)
+  - EasyOCR (auto-downloads models)
+  - Tesseract (requires manual installation)
+- Confidence-based Excel highlighting
+- Cross-platform support (Windows/macOS)
+- GUI with image upload and screenshot capture
+- Automatic path detection for Tesseract
 
 ## Installation
 
@@ -34,7 +35,7 @@ OCR to Excel Converter is a Python-based desktop application that processes imag
    cd Medical_OCR_SS_Tool
    ```
 
-2. **Set up a virtual environment (recommended):**
+2. **Set up a virtual environment:**
 
    ```sh
    python -m venv venv
@@ -43,7 +44,7 @@ OCR to Excel Converter is a Python-based desktop application that processes imag
 3. **Activate the virtual environment:**
 
    - **Windows:**
-     ```sh
+     ```cmd
      venv\Scripts\activate
      ```
    - **macOS/Linux:**
@@ -55,10 +56,8 @@ OCR to Excel Converter is a Python-based desktop application that processes imag
 
    The project contains two requirement files:
    
-   - `requirements.txt` – Contains a frozen environment with pinned versions.
-   - `requirements_paddle.txt` – Lists the dependency names for development.
-   
-   Use the appropriate file for your needs:
+   - `requirements.txt` – List of all dependencies with their versions. (recommended to use)
+   - `requirements_paddle.txt` – list of key dependencies for PaddleOCR.
    
    ```sh
    pip install -r requirements.txt
@@ -142,7 +141,6 @@ TESSDATA_PREFIX=/path/to/tessdata
    python -c "from utils import get_tessbin_path, get_tessdata_path; print(f'Tesseract: {get_tessbin_path()}\nTessdata: {get_tessdata_path()}')"
    ```
 
-
 ## Usage
 
 1. **Run the application:**
@@ -160,21 +158,41 @@ TESSDATA_PREFIX=/path/to/tessdata
 
 ## Building the Executable
 
-The project includes PyInstaller commands to bundle the application into a standalone executable. See the commands below:
+### Automated Build Scripts
 
-### Using PyInstaller on Windows
-
-   ```bat
-   pyinstaller --noconfirm --onefile --windowed --add-data "icons:icons" --add-data "models:models" --add-data "simfang.ttf:." --collect-all "paddle" --collect-all "paddleocr" --hidden-import "paddle" --hidden-import "paddleocr" --hidden-import "easyocr" --hidden-import "pytesseract" --icon "icons/icon.png" --name "OCR to Excel Converter" main.py --clean 
-   ```
-
-### Using PyInstaller on macOS/Linux
+1. **Windows**:
 
    ```bat
-   pyinstaller --noconfirm --onefile --windowed --add-data "icons:icons" --add-data "models:models" --add-data "simfang.ttf:." --add-binary "/usr/local/brew-master/bin/tesseract:models/tesseract" --add-data "/usr/local/brew-master/Cellar/tesseract/5.5.0/share/tessdata:models/tesseract/tessdata" --collect-all "paddle" --collect-all "paddleocr" --hidden-import "paddle" --hidden-import "paddleocr" --hidden-import "easyocr" --hidden-import "pytesseract" --icon "icons/icon.png" --name "OCR to Excel Converter" main.py --clean
+   build_windows.bat
    ```
 
-   *Make sure to adjust file paths as necessary for your environment.*
+2. **macOS/Linux**:
+   ```bash
+   chmod +x build_mac.sh
+   ./build_mac.sh
+   ```
+
+**Script Features**:
+
+- Automatically detects Tesseract installation paths
+- Handles both system-wide and custom installations
+- Maintains consistent resource paths between dev and prod
+- Validates Tesseract presence before building
+
+**Manual Build Requirements**:
+
+```bash
+# For reference - use scripts instead
+python -c "from utils import get_tessbin_path, get_tessdata_path; print(f'--add-binary {get_tessbin_path()}:models/tesseract --add-data {get_tessdata_path()}:models/tesseract/tessdata')"
+```
+
+**Why This Works**:
+
+1. Uses your existing path detection logic from `utils.py`
+2. Maintains frozen application structure
+3. Eliminates hardcoded paths
+4. Automatically adapts to different installations
+5. Preserves PyInstaller's resource bundling requirements
 
 ## Troubleshooting
 
@@ -183,7 +201,7 @@ The project includes PyInstaller commands to bundle the application into a stand
 - **Path not found**: Verify installation and check `.env` file
 - **Missing languages**: Install tesseract-lang (macOS) or reinstall with additional languages (Windows)
 - **Version mismatch**: Requires Tesseract 5.3.0+
-
+t
 ### Common Errors
 
 - `TESSDATA_PREFIX not set`: Verify tessdata directory exists
