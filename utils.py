@@ -1,14 +1,15 @@
 import sys
 import os
+import subprocess
+from pathlib import Path
+from shutil import which
+from dotenv import load_dotenv
 
-TESSERACT_PATH = {
-    "win32": "./models/tesseract/tesseract.exe",  # adjust it to your Tesseract installation path
-    "darwin": "/usr/local/brew-master/bin/tesseract",
-}
+load_dotenv()  # Load .env file if exists
 
 
 def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
+    """Get absolute path to resource, works for dev and for PyInstaller"""
     try:
         base_path = sys._MEIPASS
     except Exception:
@@ -16,13 +17,130 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 
-def get_tesseract_path():
+def get_tessbin_path():
+    # Frozen application path (PyInstaller)
     if getattr(sys, "frozen", False):
-        # We're running in a bundle, so use the bundled Tesseract binary
-        return resource_path("models/tesseract")
+        return resource_path(
+            "models/tesseract/tesseract.exe"
+            if sys.platform == "win32"
+            else "models/tesseract/tesseract"
+        )
+
+    # Development paths
+    # Check .env first for manual override
+    if env_path := os.getenv("TESS_BINARY_PATH"):
+        return env_path
+
+    # Platform-specific detection
+    if sys.platform == "darwin":
+        try:
+            # Try Homebrew installation path first
+            result = subprocess.run(
+                ["brew", "--prefix", "tesseract"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            brew_prefix = result.stdout.strip()
+            tesseract_bin = Path(brew_prefix) / "bin" / "tesseract"
+            if tesseract_bin.exists():
+                return str(tesseract_bin)
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            pass  # Continue to fallback methods
+
+        # Fallback to which command
+        if tess_bin := which("tesseract"):
+            return tess_bin
+
+        # Final fallback to common install locations
+        common_paths = [
+            "/usr/local/bin/tesseract",
+            "/opt/homebrew/bin/tesseract",
+            os.path.expanduser("~/homebrew/bin/tesseract"),
+        ]
+        for path in common_paths:
+            if os.path.exists(path):
+                return path
+
+        raise FileNotFoundError(
+            "Tesseract not found. Install with 'brew install tesseract' or "
+            "set TESS_BINARY_PATH in .env file"
+            "TESS_BINARY_PATH=/path/to/tesseract"
+        )
+
+    elif sys.platform == "win32":
+        # Windows path detection
+        win_paths = [
+            r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+            r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+            os.path.expanduser(r"~\AppData\Local\Programs\Tesseract-OCR\tesseract.exe"),
+        ]
+        for path in win_paths:
+            if os.path.exists(path):
+                return path
+
+        raise FileNotFoundError(
+            "Tesseract not found. Install from https://github.com/UB-Mannheim/tesseract/wiki "
+            "or set TESS_BINARY_PATH in .env file"
+            "TESS_BINARY_PATH=C:\\path\\to\\tesseract.exe"
+        )
+
     else:
-        # Development environment: use the system-installed Tesseract
-        if sys.platform in TESSERACT_PATH:
-            return TESSERACT_PATH[sys.platform]
-        else:
-            raise RuntimeError(f"Unsupported platform: {sys.platform}")
+        raise RuntimeError(f"Unsupported platform: {sys.platform}")
+
+
+def get_tessdata_path():
+    # Frozen application path (PyInstaller)
+    if getattr(sys, "frozen", False):
+        return resource_path("models/tesseract/tessdata")
+
+    # Development paths
+    if env_path := os.getenv("TESSDATA_PREFIX"):
+        return env_path
+
+    if sys.platform == "darwin":
+        try:
+            # Try Homebrew installation path first
+            result = subprocess.run(
+                ["brew", "--prefix", "tesseract"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            brew_prefix = result.stdout.strip()
+            tessdata_path = Path(brew_prefix) / "share" / "tessdata"
+            if tessdata_path.exists():
+                return str(tessdata_path)
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            pass
+
+        # Fallback to common locations
+        common_paths = [
+            "/usr/local/share/tessdata",
+            "/opt/homebrew/share/tessdata",
+            os.path.expanduser("~/homebrew/share/tessdata"),
+        ]
+        for path in common_paths:
+            if os.path.exists(path):
+                return path
+
+        raise FileNotFoundError(
+            "Tessdata not found. Install languages with 'brew install tesseract-lang' "
+            "or set TESSDATA_PREFIX in .env file"
+        )
+
+    elif sys.platform == "win32":
+        # Get Tesseract installation directory
+        tess_bin = get_tessbin_path()
+        tessdata_path = os.path.join(os.path.dirname(tess_bin), "tessdata")
+
+        if os.path.exists(tessdata_path):
+            return tessdata_path
+
+        raise FileNotFoundError(
+            f"Tessdata not found at {tessdata_path}. "
+            "Reinstall Tesseract with language data or set TESSDATA_PREFIX in .env file"
+        )
+
+    else:
+        raise RuntimeError(f"Unsupported platform: {sys.platform}")
