@@ -7,6 +7,7 @@ OCR to Excel Converter is a Python-based desktop application that processes imag
 - [Features](#features)
 - [Installation](#installation)
 - [Requirements](#requirements)
+- [Tesseract Installation](#tesseract-installation)
 - [Setup](#setup)
 - [Usage](#usage)
 - [Building the Executable](#building-the-executable)
@@ -101,6 +102,33 @@ All Python package requirements are listed in `requirements.txt`. Key dependenci
 - ttkbootstrap
 - openpyxl
 - pytorch
+
+## Tesseract Installation
+
+### macOS
+
+```bash
+# Install using Homebrew
+brew install tesseract
+
+# Verify installation
+tesseract --version
+```
+
+### Windows
+
+1. Download installer from [UB-Mannheim Tesseract](https://github.com/UB-Mannheim/tesseract/wiki)
+2. Run the installer with default settings:
+   - Use recommended installation path i.e. (`C:\Program Files\Tesseract-OCR`)
+
+### Custom Installations
+
+Create `.env` file in project root for custom paths:
+
+```env
+TESS_BINARY_PATH=/path/to/tesseract
+TESSDATA_PREFIX=/path/to/tessdata
+```
 
 ## Setup
 
