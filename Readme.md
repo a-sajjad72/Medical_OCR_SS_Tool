@@ -6,10 +6,10 @@ OCR to Excel Converter is a Python-based desktop application that processes imag
 
 - [Features](#features)
 - [Installation](#installation)
+- [Requirements](#requirements)
 - [Setup](#setup)
 - [Usage](#usage)
 - [Building the Executable](#building-the-executable)
-- [Requirements](#requirements)
 - [Project Structure](#project-structure)
 - [Troubleshooting](#troubleshooting)
 - [License](#license)
@@ -63,6 +63,45 @@ OCR to Excel Converter is a Python-based desktop application that processes imag
    pip install -r requirements.txt
    ```
 
+## Requirements
+
+### Python Interpreter
+
+- **Requires Python 3.12** (3.12.6 or newer recommended)
+- **Minimum Supported Version**: Python 3.12.0
+- **Tested Version**: Python 3.12.6
+- **Download**: [python.org/downloads](https://www.python.org/downloads/)
+
+**Important Notes**:
+⚠️ **PyTorch Compatibility**: The application requires PyTorch, which currently only has official support for Python 3.12. Earlier versions (3.11 or below) are **not supported** due to dependency conflicts.
+
+💡 **Installation Tips**:
+
+- For Windows users: Check "Add python.exe to PATH" during installation
+- For macOS/Linux users: Consider using [pyenv](https://github.com/pyenv/pyenv) for version management
+- Verify installation: `python --version`
+
+🔗 **PyTorch Compatibility Reference**:  
+[Official PyTorch Python Support Matrix](https://pytorch.org/get-started/previous-versions/#python-compatibility)
+
+### Tesseract OCR
+
+- **Required for Tesseract OCR engine**
+- **Version 5.3.0** or newer
+- Installation guides below
+
+### Python Dependencies
+
+All Python package requirements are listed in `requirements.txt`. Key dependencies include:
+
+- PaddleOCR
+- EasyOCR
+- pytesseract
+- OpenCV
+- ttkbootstrap
+- openpyxl
+- pytorch
+
 ## Setup
 
 - **Tesseract:**  
@@ -104,17 +143,6 @@ The project includes PyInstaller commands to bundle the application into a stand
    ```
 
    *Make sure to adjust file paths as necessary for your environment.*
-
-## Requirements
-
-- **Python Version:**  
-  The project has been tested with Python **3.12.7**. All libraries including Torch and others are compatible with this version.
-  
-- **Tesseract:**  
-  Ensure Tesseract is installed manually on your machine. Adjust `utils.TESSERACT_PATH` in the code if Tesseract is located in a non-default path.
-
-- **Other Libraries:**  
-  The required libraries for PaddleOCR, EasyOCR, and Tesseract integration are listed in the requirements files.
 
 ## Project Structure
 
