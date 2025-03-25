@@ -219,7 +219,7 @@ class OCRApp:
             processing_thread = threading.Thread(
                 target=self._process_image_thread, args=(file_path,)
             )
-        processing_thread.start()
+            processing_thread.start()
 
     def _process_image_thread(self, file_path):
         try:
