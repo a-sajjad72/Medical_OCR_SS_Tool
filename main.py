@@ -21,6 +21,7 @@ if site.USER_SITE is None:
 os.environ["PADDLE_OCR_BASE_DIR"] = resource_path("./models/paddleocr")
 os.environ["EASYOCR_MODULE_PATH"] = resource_path("./models/easyocr")
 os.environ["TESSDATA_PREFIX"] = get_tessdata_path()
+
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)8s] %(message)s')
 logger = logging.getLogger(__name__)
@@ -45,6 +46,57 @@ class OCRApp:
         self.output_directory = None
 
         self.setup_ui()
+
+        self.ocr_models = {
+            "PaddleOCR": None,
+            "Tesseract": None,
+            "EasyOCR": None
+        }
+        self.loading_status = tk.StringVar()
+        self.setup_loading_screen()
+        self.root.after(100, self.preload_engines)  # Non-blocking preload
+
+    def setup_loading_screen(self):
+        self.loading_frame = ttk.Frame(self.root)
+        self.loading_frame.pack(fill=tk.BOTH, expand=True)
+        
+        self.loading_label = ttk.Label(
+            self.loading_frame, 
+            textvariable=self.loading_status,
+            font=('Helvetica', 14)
+        )
+        self.loading_label.pack(pady=20)
+        
+        self.loading_progress = ttk.Progressbar(
+            self.loading_frame, 
+            mode='indeterminate'
+        )
+        self.loading_progress.pack(pady=10)
+        
+        self.loading_progress.start()
+
+    def preload_engines(self):
+        """Non-blocking background preloading"""
+        def _preload():
+            engines = list(self.ocr_models.keys())
+            for engine in engines:
+                self.loading_label.config(text=f"Loading {engine}...")
+                try:
+                    if engine == "PaddleOCR":
+                        from OCR_Modules.paddleOCR import initialize_ocr_SLANet_LCNetV2
+                        self.ocr_models[engine] = initialize_ocr_SLANet_LCNetV2()
+                    elif engine == "Tesseract":
+                        from OCR_Modules.tesseractOCR import initialize_tesseract
+                        self.ocr_models[engine] = initialize_tesseract(get_tessbin_path())
+                    elif engine == "EasyOCR":
+                        from OCR_Modules.easyOCR import initialize_easyocr
+                        self.ocr_models[engine] = initialize_easyocr()
+                except Exception as e:
+                    logger.error(f"Error preloading {engine}: {str(e)}")
+                
+            self.loading_frame.pack_forget()
+        
+        threading.Thread(target=_preload).start()
 
     def setup_ui(self):
         # Main frame
@@ -118,16 +170,18 @@ class OCRApp:
         self.status_label = ttk.Label(self.center_frame, text="")
         self.status_label.pack(pady=(0, 10))
 
-        # Progress bar (hidden initially)
-        self.progress_bar = ttk.Progressbar(self.center_frame, mode='indeterminate')
-        self.progress_bar.pack(pady=(0, 10))
-        self.progress_bar.pack_forget()
-
         # Prepare frames for results
         self.top_frame = ttk.Frame(self.main_frame)
         self.left_frame = ttk.Frame(self.main_frame)
         self.middle_frame = ttk.Frame(self.main_frame)
         self.right_frame = ttk.Frame(self.main_frame)  # For the sidebar
+
+        # Modify progress bar initialization
+        self.progress_bar = ttk.Progressbar(
+            self.center_frame, 
+            mode='indeterminate',
+            length=300  # Explicit length for better macOS visibility
+        )
 
     def select_output_directory(self):
         directory = filedialog.askdirectory()
@@ -212,6 +266,7 @@ class OCRApp:
         return image
 
     def process_image(self, file_path):
+        self.show_progress("Initializing OCR Engine...")
         # Use main thread for macOS UI operations
         if sys.platform == "darwin":
             self.root.after(0, self._process_image_thread, file_path)
@@ -221,9 +276,42 @@ class OCRApp:
             )
             processing_thread.start()
 
+    def show_progress(self, message):
+        self.status_label.config(text=message)
+        if sys.platform == "darwin":
+            self.root.update_idletasks()
+        self.progress_bar.pack(pady=(0, 10))
+        self.progress_bar.start()
+        print(f"called show_progress with {message}")
+
+    def hide_progress(self):
+        self.progress_bar.stop()
+        self.progress_bar.pack_forget()
+        self.status_label.config(text="")
+        if sys.platform == "darwin":
+            self.root.update_idletasks()
+        print("called hide_progress")
+
     def _process_image_thread(self, file_path):
         try:
             ocr_engine = self.ocr_engine.get()
+
+            # Check if engine needs initialization
+            if not self.ocr_models.get(ocr_engine):
+                self.show_progress(f"Loading {ocr_engine}...")
+                # Lazy load the engine if not preloaded
+                if ocr_engine == "PaddleOCR":
+                    from OCR_Modules.paddleOCR import initialize_ocr_SLANet_LCNetV2
+                    self.ocr_models[ocr_engine] = initialize_ocr_SLANet_LCNetV2()
+                elif ocr_engine == "Tesseract":
+                    from OCR_Modules.tesseractOCR import initialize_tesseract
+                    self.ocr_models[ocr_engine] = initialize_tesseract(get_tessbin_path())
+                elif ocr_engine == "EasyOCR":
+                    from OCR_Modules.easyOCR import initialize_easyocr
+                    self.ocr_models[ocr_engine] = initialize_easyocr()
+                self.hide_progress()
+
+            self.show_progress("Processing image...")    
 
             # Show progress bar in the center frame
             self.progress_bar.pack(pady=(0, 10))
@@ -241,21 +329,17 @@ class OCRApp:
             logger.error(f"Error processing image: {str(e)}")
             self.status_label.config(text=f"Error: {str(e)}\nPlease try a different image or OCR engine.")
         finally:
-            # Hide progress bar
-            self.progress_bar.stop()
-            self.progress_bar.pack_forget()
+            self.hide_progress()
 
     def process_with_paddleocr(self, file_path):
         from OCR_Modules.paddleOCR import (
-            initialize_ocr_SLANet_LCNetV2,
             process_image as paddle_process_image,
             group_into_rows as paddle_group_into_rows,
             save_as_xlsx as paddle_save_as_xlsx,
             draw_bounding_boxes as paddle_draw_bounding_boxes,
         )
 
-        ocr = initialize_ocr_SLANet_LCNetV2()
-        data = paddle_process_image(file_path, ocr)
+        data = paddle_process_image(file_path, self.ocr_models["PaddleOCR"])
         rows = paddle_group_into_rows(data)
 
         if not rows:
@@ -292,15 +376,13 @@ class OCRApp:
     def process_with_tesseract(self, file_path):
         try:
             from OCR_Modules.tesseractOCR import (
-                initialize_tesseract,
                 process_image as tesseract_process_image,
                 group_into_rows as tesseract_group_into_rows,
                 save_as_xlsx as tesseract_save_as_xlsx,
                 draw_bounding_boxes as tesseract_draw_bounding_boxes,
             )
 
-            ocr = initialize_tesseract(get_tessbin_path())
-            data = tesseract_process_image(file_path, ocr)
+            data = tesseract_process_image(file_path, self.ocr_models["Tesseract"])
 
             if not data:
                 raise ValueError("No data extracted from image.")
@@ -347,15 +429,13 @@ class OCRApp:
     def process_with_easyocr(self, file_path):
         try:
             from OCR_Modules.easyOCR import (
-                initialize_easyocr,
                 process_image as easyocr_process_image,
                 group_into_rows as easyocr_group_into_rows,
                 save_as_xlsx as easyocr_save_as_xlsx,
                 draw_bounding_boxes as easyocr_draw_bounding_boxes,
             )
 
-            reader = initialize_easyocr()
-            data = easyocr_process_image(file_path, reader)
+            data = easyocr_process_image(file_path, self.ocr_models["EasyOCR"])
 
             if not data:
                 raise ValueError("No data extracted from image.")
