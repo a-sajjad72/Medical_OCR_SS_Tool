@@ -168,8 +168,7 @@ TESSDATA_PREFIX=/path/to/tessdata
 
 2. **macOS/Linux**:
    ```bash
-   chmod +x build_mac.sh
-   ./build_mac.sh
+   source build_mac.sh 
    ```
 
 **Script Features**:
