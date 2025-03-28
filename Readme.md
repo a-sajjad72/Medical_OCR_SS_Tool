@@ -55,10 +55,10 @@ OCR to Excel Converter is a Python-based desktop application that processes imag
 4. **Install dependencies:**
 
    The project contains two requirement files:
-   
+
    - `requirements.txt` – List of all dependencies with their versions. (recommended to use)
    - `requirements_paddle.txt` – list of key dependencies for PaddleOCR.
-   
+
    ```sh
    pip install -r requirements.txt
    ```
@@ -168,7 +168,7 @@ TESSDATA_PREFIX=/path/to/tessdata
 
 2. **macOS/Linux**:
    ```bash
-   source build_mac.sh 
+   source build_mac.sh
    ```
 
 **Script Features**:
@@ -200,7 +200,8 @@ python -c "from utils import get_tessbin_path, get_tessdata_path; print(f'--add-
 - **Path not found**: Verify installation and check `.env` file
 - **Missing languages**: Install tesseract-lang (macOS) or reinstall with additional languages (Windows)
 - **Version mismatch**: Requires Tesseract 5.3.0+
-t
+  t
+
 ### Common Errors
 
 - `TESSDATA_PREFIX not set`: Verify tessdata directory exists
