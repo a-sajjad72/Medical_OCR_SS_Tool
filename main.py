@@ -1,20 +1,22 @@
-import tkinter as tk
-from tkinter import filedialog
-from PIL import Image, ImageTk
-import os
 import logging
-import threading
-import tempfile
-import ttkbootstrap as ttk
-from ttkbootstrap.constants import *
-import subprocess
-from utils import resource_path, get_tessbin_path, get_tessdata_path
-import traceback
-import sys
+import os
 import site
+import subprocess
+import sys
+import tempfile
+import threading
 import time
+import tkinter as tk
+import traceback
+from tkinter import filedialog
+
 import pyautogui
+import ttkbootstrap as ttk
+from PIL import Image, ImageTk
+from ttkbootstrap.constants import *
+
 from screenshot import select_region
+from utils import get_tessbin_path, get_tessdata_path, resource_path
 
 if site.USER_SITE is None:
     # Set a fallback value.
@@ -26,8 +28,11 @@ os.environ["EASYOCR_MODULE_PATH"] = resource_path("./models/easyocr")
 os.environ["TESSDATA_PREFIX"] = get_tessdata_path()
 
 # Set up logging
-logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)8s] %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="[%(asctime)s] [%(levelname)8s] %(message)s"
+)
 logger = logging.getLogger(__name__)
+
 
 class OCRApp:
     def __init__(self, root):
@@ -35,9 +40,9 @@ class OCRApp:
         self.root.title("OCR to Excel Converter")
         self.root.geometry("1280x720")
         # Set application icon to 'icon.png'
-        self.icon_image = tk.PhotoImage(file=resource_path('icons/icon.png'))
+        self.icon_image = tk.PhotoImage(file=resource_path("icons/icon.png"))
         self.root.iconphoto(False, self.icon_image)
-        self.style = ttk.Style('cosmo')  # Use a modern theme
+        self.style = ttk.Style("cosmo")  # Use a modern theme
         self.ocr_engine = tk.StringVar()
         self.ocr_engine.set("PaddleOCR")
 
@@ -50,11 +55,7 @@ class OCRApp:
 
         self.setup_ui()
 
-        self.ocr_models = {
-            "PaddleOCR": None,
-            "Tesseract": None,
-            "EasyOCR": None
-        }
+        self.ocr_models = {"PaddleOCR": None, "Tesseract": None, "EasyOCR": None}
         self.loading_status = tk.StringVar()
         self.setup_loading_screen()
         self.root.after(100, self.preload_engines)  # Non-blocking preload
@@ -62,43 +63,48 @@ class OCRApp:
     def setup_loading_screen(self):
         self.loading_frame = ttk.Frame(self.root)
         self.loading_frame.pack(fill=tk.BOTH, expand=True)
-        
+
         self.loading_label = ttk.Label(
-            self.loading_frame, 
-            textvariable=self.loading_status,
-            font=('Helvetica', 14)
+            self.loading_frame, textvariable=self.loading_status, font=("Helvetica", 14)
         )
         self.loading_label.pack(pady=20)
-        
+
         self.loading_progress = ttk.Progressbar(
-            self.loading_frame, 
-            mode='indeterminate'
+            self.loading_frame, mode="indeterminate"
         )
         self.loading_progress.pack(pady=10)
-        
+
         self.loading_progress.start()
 
     def preload_engines(self):
         """Non-blocking background preloading"""
+
         def _preload():
             engines = list(self.ocr_models.keys())
             for engine in engines:
                 self.loading_status.set(f"Preloading {engine}...")
                 try:
                     if engine == "PaddleOCR":
-                        from OCR_Modules.paddleOCR import initialize_ocr_SLANet_LCNetV2
+                        from OCR_Modules.paddleOCR import \
+                            initialize_ocr_SLANet_LCNetV2
+
                         self.ocr_models[engine] = initialize_ocr_SLANet_LCNetV2()
                     elif engine == "Tesseract":
-                        from OCR_Modules.tesseractOCR import initialize_tesseract
-                        self.ocr_models[engine] = initialize_tesseract(get_tessbin_path())
+                        from OCR_Modules.tesseractOCR import \
+                            initialize_tesseract
+
+                        self.ocr_models[engine] = initialize_tesseract(
+                            get_tessbin_path()
+                        )
                     elif engine == "EasyOCR":
                         from OCR_Modules.easyOCR import initialize_easyocr
+
                         self.ocr_models[engine] = initialize_easyocr()
                 except Exception as e:
                     logger.error(f"Error preloading {engine}: {str(e)}")
-                
+
             self.loading_frame.pack_forget()
-        
+
         threading.Thread(target=_preload).start()
 
     def setup_ui(self):
@@ -121,16 +127,22 @@ class OCRApp:
         folder_icon = Image.open(resource_path("icons/folder.png"))
         folder_icon = folder_icon.resize((20, 20), Image.LANCZOS)
         self.folder_icon_photo = ImageTk.PhotoImage(folder_icon)
-        output_dir_button = ttk.Button(self.center_frame, text="Select Output Directory", 
-                                       image=self.folder_icon_photo, compound=tk.LEFT,
-                                       command=self.select_output_directory)
+        output_dir_button = ttk.Button(
+            self.center_frame,
+            text="Select Output Directory",
+            image=self.folder_icon_photo,
+            compound=tk.LEFT,
+            command=self.select_output_directory,
+        )
         output_dir_button.pack(pady=(10, 5))
 
         # OCR Engine Selection
         ocr_label = ttk.Label(self.center_frame, text="Select OCR Engine:")
         ocr_label.pack(pady=(10, 5))
-        ocr_dropdown = ttk.Combobox(self.center_frame, textvariable=self.ocr_engine, state="readonly", width=30)
-        ocr_dropdown['values'] = ('PaddleOCR', 'Tesseract', 'EasyOCR')
+        ocr_dropdown = ttk.Combobox(
+            self.center_frame, textvariable=self.ocr_engine, state="readonly", width=30
+        )
+        ocr_dropdown["values"] = ("PaddleOCR", "Tesseract", "EasyOCR")
         ocr_dropdown.pack(pady=(0, 20))
 
         # Confidence Thresholds
@@ -139,34 +151,60 @@ class OCRApp:
 
         options = [str(i) for i in range(80, 101)]  # Values from 80 to 100
 
-        green_label = ttk.Label(thresholds_frame, text="High Confidence Threshold (Green) (> %):")
-        green_label.grid(row=0, column=0, padx=5, pady=5, sticky='e')
-        green_dropdown = ttk.Combobox(thresholds_frame, textvariable=self.green_threshold, values=options, state='readonly', width=5)
+        green_label = ttk.Label(
+            thresholds_frame, text="High Confidence Threshold (Green) (> %):"
+        )
+        green_label.grid(row=0, column=0, padx=5, pady=5, sticky="e")
+        green_dropdown = ttk.Combobox(
+            thresholds_frame,
+            textvariable=self.green_threshold,
+            values=options,
+            state="readonly",
+            width=5,
+        )
         green_dropdown.grid(row=0, column=1, padx=5, pady=5)
-        green_dropdown.bind('<<ComboboxSelected>>', self.update_thresholds)
+        green_dropdown.bind("<<ComboboxSelected>>", self.update_thresholds)
 
-        yellow_label = ttk.Label(thresholds_frame, text="Medium Confidence Threshold (Yellow) (> %):")
-        yellow_label.grid(row=1, column=0, padx=5, pady=5, sticky='e')
-        yellow_dropdown = ttk.Combobox(thresholds_frame, textvariable=self.yellow_threshold, values=options, state='readonly', width=5)
+        yellow_label = ttk.Label(
+            thresholds_frame, text="Medium Confidence Threshold (Yellow) (> %):"
+        )
+        yellow_label.grid(row=1, column=0, padx=5, pady=5, sticky="e")
+        yellow_dropdown = ttk.Combobox(
+            thresholds_frame,
+            textvariable=self.yellow_threshold,
+            values=options,
+            state="readonly",
+            width=5,
+        )
         yellow_dropdown.grid(row=1, column=1, padx=5, pady=5)
-        yellow_dropdown.bind('<<ComboboxSelected>>', self.update_thresholds)
+        yellow_dropdown.bind("<<ComboboxSelected>>", self.update_thresholds)
 
         # Upload Button
         upload_icon = Image.open(resource_path("icons/upload.png"))
         upload_icon = upload_icon.resize((20, 20), Image.LANCZOS)
         self.upload_icon_photo = ImageTk.PhotoImage(upload_icon)
-        self.upload_button = ttk.Button(self.center_frame, text="Upload Image", 
-                                        image=self.upload_icon_photo, compound=tk.LEFT,
-                                        command=self.select_image, width=20)
+        self.upload_button = ttk.Button(
+            self.center_frame,
+            text="Upload Image",
+            image=self.upload_icon_photo,
+            compound=tk.LEFT,
+            command=self.select_image,
+            width=20,
+        )
         self.upload_button.pack(pady=(0, 10))
 
         # Screenshot Button
         screenshot_icon = Image.open(resource_path("icons/screenshot.png"))
         screenshot_icon = screenshot_icon.resize((20, 20), Image.LANCZOS)
         self.screenshot_icon_photo = ImageTk.PhotoImage(screenshot_icon)
-        self.screenshot_button = ttk.Button(self.center_frame, text="Screenshot", 
-                                            image=self.screenshot_icon_photo, compound=tk.LEFT,
-                                            command=self.take_screenshot, width=20)
+        self.screenshot_button = ttk.Button(
+            self.center_frame,
+            text="Screenshot",
+            image=self.screenshot_icon_photo,
+            compound=tk.LEFT,
+            command=self.take_screenshot,
+            width=20,
+        )
         self.screenshot_button.pack(pady=(0, 20))
 
         # Status Label
@@ -181,9 +219,9 @@ class OCRApp:
 
         # Modify progress bar initialization
         self.progress_bar = ttk.Progressbar(
-            self.center_frame, 
-            mode='indeterminate',
-            length=300  # Explicit length for better macOS visibility
+            self.center_frame,
+            mode="indeterminate",
+            length=300,  # Explicit length for better macOS visibility
         )
 
     def select_output_directory(self):
@@ -191,7 +229,9 @@ class OCRApp:
         if directory:
             self.output_directory = directory
             logger.info(f"Output directory set to: {self.output_directory}")
-            self.status_label.config(text=f"Output directory set to: {self.output_directory}")
+            self.status_label.config(
+                text=f"Output directory set to: {self.output_directory}"
+            )
 
     def update_thresholds(self, event=None):
         # Ensure that green_threshold is always greater than yellow_threshold
@@ -242,7 +282,7 @@ class OCRApp:
         root.update()  # Force Tkinter to process the hide request
         time.sleep(0.5)  # Give the OS time to hide the window (adjust as needed)
 
-        # Now take the (initial) screenshot 
+        # Now take the (initial) screenshot
         screenshot = pyautogui.screenshot().convert("RGB")
         region = select_region(root, screenshot)
 
@@ -311,17 +351,23 @@ class OCRApp:
                 self.show_progress(f"Loading {ocr_engine}...")
                 # Lazy load the engine if not preloaded
                 if ocr_engine == "PaddleOCR":
-                    from OCR_Modules.paddleOCR import initialize_ocr_SLANet_LCNetV2
+                    from OCR_Modules.paddleOCR import \
+                        initialize_ocr_SLANet_LCNetV2
+
                     self.ocr_models[ocr_engine] = initialize_ocr_SLANet_LCNetV2()
                 elif ocr_engine == "Tesseract":
                     from OCR_Modules.tesseractOCR import initialize_tesseract
-                    self.ocr_models[ocr_engine] = initialize_tesseract(get_tessbin_path())
+
+                    self.ocr_models[ocr_engine] = initialize_tesseract(
+                        get_tessbin_path()
+                    )
                 elif ocr_engine == "EasyOCR":
                     from OCR_Modules.easyOCR import initialize_easyocr
+
                     self.ocr_models[ocr_engine] = initialize_easyocr()
                 self.hide_progress()
 
-            self.show_progress("Processing image...")    
+            self.show_progress("Processing image...")
 
             # Show progress bar in the center frame
             self.progress_bar.pack(pady=(0, 10))
@@ -337,17 +383,19 @@ class OCRApp:
                 raise ValueError("Please select an OCR engine.")
         except Exception as e:
             logger.error(f"Error processing image: {str(e)}")
-            self.status_label.config(text=f"Error: {str(e)}\nPlease try a different image or OCR engine.")
+            self.status_label.config(
+                text=f"Error: {str(e)}\nPlease try a different image or OCR engine."
+            )
         finally:
             self.hide_progress()
 
     def process_with_paddleocr(self, file_path):
-        from OCR_Modules.paddleOCR import (
-            process_image as paddle_process_image,
-            group_into_rows as paddle_group_into_rows,
-            save_as_xlsx as paddle_save_as_xlsx,
-            draw_bounding_boxes as paddle_draw_bounding_boxes,
-        )
+        from OCR_Modules.paddleOCR import \
+            draw_bounding_boxes as paddle_draw_bounding_boxes
+        from OCR_Modules.paddleOCR import \
+            group_into_rows as paddle_group_into_rows
+        from OCR_Modules.paddleOCR import process_image as paddle_process_image
+        from OCR_Modules.paddleOCR import save_as_xlsx as paddle_save_as_xlsx
 
         data = paddle_process_image(file_path, self.ocr_models["PaddleOCR"])
         rows = paddle_group_into_rows(data)
@@ -370,7 +418,9 @@ class OCRApp:
         # Create the output filenames
         base_filename = os.path.splitext(os.path.basename(file_path))[0]
         output_xlsx = os.path.join(output_dir, base_filename + "_output.xlsx")
-        output_image_path = os.path.join(output_dir, base_filename + "_output_image.jpg")
+        output_image_path = os.path.join(
+            output_dir, base_filename + "_output_image.jpg"
+        )
 
         # Get thresholds from dropdowns
         green_thresh = self.green_threshold.get() / 100.0
@@ -385,12 +435,14 @@ class OCRApp:
 
     def process_with_tesseract(self, file_path):
         try:
-            from OCR_Modules.tesseractOCR import (
-                process_image as tesseract_process_image,
-                group_into_rows as tesseract_group_into_rows,
-                save_as_xlsx as tesseract_save_as_xlsx,
-                draw_bounding_boxes as tesseract_draw_bounding_boxes,
-            )
+            from OCR_Modules.tesseractOCR import \
+                draw_bounding_boxes as tesseract_draw_bounding_boxes
+            from OCR_Modules.tesseractOCR import \
+                group_into_rows as tesseract_group_into_rows
+            from OCR_Modules.tesseractOCR import \
+                process_image as tesseract_process_image
+            from OCR_Modules.tesseractOCR import \
+                save_as_xlsx as tesseract_save_as_xlsx
 
             data = tesseract_process_image(file_path, self.ocr_models["Tesseract"])
 
@@ -417,7 +469,9 @@ class OCRApp:
             # Create the output filenames
             base_filename = os.path.splitext(os.path.basename(file_path))[0]
             output_xlsx = os.path.join(output_dir, base_filename + "_output.xlsx")
-            output_image_path = os.path.join(output_dir, base_filename + "_output_image.jpg")
+            output_image_path = os.path.join(
+                output_dir, base_filename + "_output_image.jpg"
+            )
 
             # Get thresholds from dropdowns
             green_thresh = self.green_threshold.get() / 100.0
@@ -431,19 +485,25 @@ class OCRApp:
             self.display_results(output_image_path, output_xlsx)
         except ValueError as ve:
             logger.error(f"Tesseract processing error: {str(ve)}")
-            self.status_label.config(text=f"Error: {str(ve)}\nPlease try a different image or OCR engine.")
+            self.status_label.config(
+                text=f"Error: {str(ve)}\nPlease try a different image or OCR engine."
+            )
         except Exception as e:
             logger.error(f"Unexpected error in Tesseract processing: {str(e)}")
-            self.status_label.config(text=f"Unexpected error: {str(e)}\nPlease try a different image or OCR engine.")
+            self.status_label.config(
+                text=f"Unexpected error: {str(e)}\nPlease try a different image or OCR engine."
+            )
 
     def process_with_easyocr(self, file_path):
         try:
-            from OCR_Modules.easyOCR import (
-                process_image as easyocr_process_image,
-                group_into_rows as easyocr_group_into_rows,
-                save_as_xlsx as easyocr_save_as_xlsx,
-                draw_bounding_boxes as easyocr_draw_bounding_boxes,
-            )
+            from OCR_Modules.easyOCR import \
+                draw_bounding_boxes as easyocr_draw_bounding_boxes
+            from OCR_Modules.easyOCR import \
+                group_into_rows as easyocr_group_into_rows
+            from OCR_Modules.easyOCR import \
+                process_image as easyocr_process_image
+            from OCR_Modules.easyOCR import \
+                save_as_xlsx as easyocr_save_as_xlsx
 
             data = easyocr_process_image(file_path, self.ocr_models["EasyOCR"])
 
@@ -470,7 +530,9 @@ class OCRApp:
             # Create the output filenames
             base_filename = os.path.splitext(os.path.basename(file_path))[0]
             output_xlsx = os.path.join(output_dir, base_filename + "_output.xlsx")
-            output_image_path = os.path.join(output_dir, base_filename + "_output_image.jpg")
+            output_image_path = os.path.join(
+                output_dir, base_filename + "_output_image.jpg"
+            )
 
             # Get thresholds from dropdowns
             green_thresh = self.green_threshold.get() / 100.0
@@ -484,10 +546,14 @@ class OCRApp:
             self.display_results(output_image_path, output_xlsx)
         except ValueError as ve:
             logger.error(f"EasyOCR processing error: {str(ve)}")
-            self.status_label.config(text=f"Error: {str(ve)}\nPlease try a different image or OCR engine.")
+            self.status_label.config(
+                text=f"Error: {str(ve)}\nPlease try a different image or OCR engine."
+            )
         except Exception as e:
             logger.error(f"Unexpected error in EasyOCR processing: {str(e)}")
-            self.status_label.config(text=f"Unexpected error: {str(e)}\nPlease try a different image or OCR engine.")
+            self.status_label.config(
+                text=f"Unexpected error: {str(e)}\nPlease try a different image or OCR engine."
+            )
 
     def display_results(self, image_path, excel_path):
         if sys.platform == "darwin":
@@ -546,7 +612,7 @@ class OCRApp:
         # Create a frame inside top_frame to center widgets
         self.root.update_idletasks()  # Refresh window state
         top_inner_frame = ttk.Frame(self.top_frame)
-        top_inner_frame.pack(anchor='center')
+        top_inner_frame.pack(anchor="center")
 
         # Add small logo
         small_logo_img = Image.open(resource_path("icons/icon.png"))
@@ -557,24 +623,36 @@ class OCRApp:
 
         ocr_label = ttk.Label(top_inner_frame, text="Select OCR Engine:")
         ocr_label.pack(side=tk.LEFT, padx=(10, 5))
-        ocr_dropdown = ttk.Combobox(top_inner_frame, textvariable=self.ocr_engine, state="readonly", width=20)
-        ocr_dropdown['values'] = ('PaddleOCR', 'Tesseract', 'EasyOCR')
+        ocr_dropdown = ttk.Combobox(
+            top_inner_frame, textvariable=self.ocr_engine, state="readonly", width=20
+        )
+        ocr_dropdown["values"] = ("PaddleOCR", "Tesseract", "EasyOCR")
         ocr_dropdown.pack(side=tk.LEFT, padx=(0, 10))
-        upload_button = ttk.Button(top_inner_frame, text="Upload Image", command=self.select_image)
+        upload_button = ttk.Button(
+            top_inner_frame, text="Upload Image", command=self.select_image
+        )
         upload_button.pack(side=tk.LEFT, padx=(0, 10))
 
         # Add Screenshot Button with Icon
-        screenshot_icon = Image.open(resource_path(os.path.join('icons', 'screenshoticon.png')))
+        screenshot_icon = Image.open(
+            resource_path(os.path.join("icons", "screenshoticon.png"))
+        )
         screenshot_icon = screenshot_icon.resize((30, 30), Image.LANCZOS)
         self.screenshot_icon_photo = ImageTk.PhotoImage(screenshot_icon)
-        screenshot_button = ttk.Button(top_inner_frame, image=self.screenshot_icon_photo, command=self.take_screenshot)
+        screenshot_button = ttk.Button(
+            top_inner_frame,
+            image=self.screenshot_icon_photo,
+            command=self.take_screenshot,
+        )
         screenshot_button.pack(side=tk.LEFT, padx=(0, 10))
 
         # Add Home Button with Icon
-        home_icon = Image.open(resource_path(os.path.join('icons', 'home.png')))
+        home_icon = Image.open(resource_path(os.path.join("icons", "home.png")))
         home_icon = home_icon.resize((30, 30), Image.LANCZOS)
         self.home_icon_photo = ImageTk.PhotoImage(home_icon)
-        home_button = ttk.Button(top_inner_frame, image=self.home_icon_photo, command=self.reset_ui)
+        home_button = ttk.Button(
+            top_inner_frame, image=self.home_icon_photo, command=self.reset_ui
+        )
         home_button.pack(side=tk.LEFT, padx=(0, 10))
 
         # Set up frames
@@ -586,7 +664,7 @@ class OCRApp:
         image = Image.open(image_path)
 
         # Create a canvas to display the image
-        canvas = tk.Canvas(panel, bg='white')
+        canvas = tk.Canvas(panel, bg="white")
         canvas.pack(fill=tk.BOTH, expand=True)
 
         # Function to resize the image when the panel size changes
@@ -607,7 +685,9 @@ class OCRApp:
             photo = ImageTk.PhotoImage(resized_image)
 
             canvas.delete("all")
-            canvas.create_image(canvas_width/2, canvas_height/2, image=photo, anchor='center')
+            canvas.create_image(
+                canvas_width / 2, canvas_height / 2, image=photo, anchor="center"
+            )
             canvas.image = photo  # Keep a reference
 
         # Bind the resize event to the function
@@ -631,7 +711,7 @@ class OCRApp:
         image_width = cell_width * max_col + 2 * border_size
         image_height = cell_height * max_row + 2 * border_size
 
-        image = Image.new('RGB', (image_width, image_height), 'white')
+        image = Image.new("RGB", (image_width, image_height), "white")
         draw = ImageDraw.Draw(image)
         try:
             font = ImageFont.truetype("arial.ttf", font_size)
@@ -648,23 +728,23 @@ class OCRApp:
                 y2 = y1 + cell_height
 
                 # Draw cell background
-                fill_color = 'FFFFFF'  # Default fill
+                fill_color = "FFFFFF"  # Default fill
                 if cell.fill and cell.fill.fgColor:
-                    if cell.fill.fgColor.type == 'rgb':
+                    if cell.fill.fgColor.type == "rgb":
                         fill_color = cell.fill.fgColor.rgb[-6:]
-                    elif cell.fill.fgColor.type == 'indexed':
-                        fill_color = 'FFFFFF'  # Handle indexed colors as white
+                    elif cell.fill.fgColor.type == "indexed":
+                        fill_color = "FFFFFF"  # Handle indexed colors as white
 
-                draw.rectangle([x1, y1, x2, y2], fill=f'#{fill_color}', outline='black')
+                draw.rectangle([x1, y1, x2, y2], fill=f"#{fill_color}", outline="black")
 
                 # Draw cell text
-                text = str(cell.value) if cell.value is not None else ''
+                text = str(cell.value) if cell.value is not None else ""
                 bbox = font.getbbox(text)
                 text_width = bbox[2] - bbox[0]
                 text_height = bbox[3] - bbox[1]
                 text_x = x1 + (cell_width - text_width) / 2
                 text_y = y1 + (cell_height - text_height) / 2
-                draw.text((text_x, text_y), text, fill='black', font=font)
+                draw.text((text_x, text_y), text, fill="black", font=font)
 
         image.save(output_image_path)
 
@@ -674,66 +754,82 @@ class OCRApp:
         sidebar_frame.pack(fill=tk.Y, expand=False)
 
         # Accuracy Box
-        accuracy_label = ttk.Label(sidebar_frame, text="Accuracy Thresholds", font=('Helvetica', 14, 'bold'))
+        accuracy_label = ttk.Label(
+            sidebar_frame, text="Accuracy Thresholds", font=("Helvetica", 14, "bold")
+        )
         accuracy_label.pack(pady=(0, 10))
 
         # Icons for accuracy levels
-        green_icon = Image.open(resource_path(os.path.join('icons', 'green_circle.png')))
+        green_icon = Image.open(
+            resource_path(os.path.join("icons", "green_circle.png"))
+        )
         green_icon = green_icon.resize((20, 20), Image.LANCZOS)
         self.green_icon_photo = ImageTk.PhotoImage(green_icon)
 
-        yellow_icon = Image.open(resource_path(os.path.join('icons', 'yellow_circle.png')))
+        yellow_icon = Image.open(
+            resource_path(os.path.join("icons", "yellow_circle.png"))
+        )
         yellow_icon = yellow_icon.resize((20, 20), Image.LANCZOS)
         self.yellow_icon_photo = ImageTk.PhotoImage(yellow_icon)
 
-        red_icon = Image.open(resource_path(os.path.join('icons', 'red_circle.png')))
+        red_icon = Image.open(resource_path(os.path.join("icons", "red_circle.png")))
         red_icon = red_icon.resize((20, 20), Image.LANCZOS)
         self.red_icon_photo = ImageTk.PhotoImage(red_icon)
 
         # Green Threshold Label
         green_frame = ttk.Frame(sidebar_frame)
-        green_frame.pack(pady=5, anchor='w')
+        green_frame.pack(pady=5, anchor="w")
         green_label_icon = ttk.Label(green_frame, image=self.green_icon_photo)
         green_label_icon.pack(side=tk.LEFT)
-        green_label_text = ttk.Label(green_frame, text=f"High Confidence (> {self.green_threshold.get()}%)")
+        green_label_text = ttk.Label(
+            green_frame, text=f"High Confidence (> {self.green_threshold.get()}%)"
+        )
         green_label_text.pack(side=tk.LEFT, padx=5)
 
         # Yellow Threshold Label
         yellow_frame = ttk.Frame(sidebar_frame)
-        yellow_frame.pack(pady=5, anchor='w')
+        yellow_frame.pack(pady=5, anchor="w")
         yellow_label_icon = ttk.Label(yellow_frame, image=self.yellow_icon_photo)
         yellow_label_icon.pack(side=tk.LEFT)
-        yellow_label_text = ttk.Label(yellow_frame, text=f"Medium Confidence (> {self.yellow_threshold.get()}%)")
+        yellow_label_text = ttk.Label(
+            yellow_frame, text=f"Medium Confidence (> {self.yellow_threshold.get()}%)"
+        )
         yellow_label_text.pack(side=tk.LEFT, padx=5)
 
         # Red Threshold Label
         red_frame = ttk.Frame(sidebar_frame)
-        red_frame.pack(pady=5, anchor='w')
+        red_frame.pack(pady=5, anchor="w")
         red_label_icon = ttk.Label(red_frame, image=self.red_icon_photo)
         red_label_icon.pack(side=tk.LEFT)
-        red_label_text = ttk.Label(red_frame, text=f"Low Confidence (≤ {self.yellow_threshold.get()}%)")
+        red_label_text = ttk.Label(
+            red_frame, text=f"Low Confidence (≤ {self.yellow_threshold.get()}%)"
+        )
         red_label_text.pack(side=tk.LEFT, padx=5)
 
         # Divider
-        separator = ttk.Separator(sidebar_frame, orient='horizontal')
-        separator.pack(fill='x', pady=10)
+        separator = ttk.Separator(sidebar_frame, orient="horizontal")
+        separator.pack(fill="x", pady=10)
 
         # Disclaimer Box
         disclaimer_frame = ttk.Frame(sidebar_frame)
         disclaimer_frame.pack(pady=(10, 10))
 
         # Info Icon
-        info_icon = Image.open(resource_path(os.path.join('icons', 'info.png')))
+        info_icon = Image.open(resource_path(os.path.join("icons", "info.png")))
         info_icon = info_icon.resize((20, 20), Image.LANCZOS)
         self.info_icon_photo = ImageTk.PhotoImage(info_icon)
 
         disclaimer_title_frame = ttk.Frame(disclaimer_frame)
-        disclaimer_title_frame.pack(anchor='w')
+        disclaimer_title_frame.pack(anchor="w")
 
-        disclaimer_icon_label = ttk.Label(disclaimer_title_frame, image=self.info_icon_photo)
+        disclaimer_icon_label = ttk.Label(
+            disclaimer_title_frame, image=self.info_icon_photo
+        )
         disclaimer_icon_label.pack(side=tk.LEFT)
 
-        disclaimer_label = ttk.Label(disclaimer_title_frame, text="Disclaimer", font=('Helvetica', 14, 'bold'))
+        disclaimer_label = ttk.Label(
+            disclaimer_title_frame, text="Disclaimer", font=("Helvetica", 14, "bold")
+        )
         disclaimer_label.pack(side=tk.LEFT, padx=5)
 
         # Enhanced Disclaimer Text
@@ -743,8 +839,11 @@ class OCRApp:
             "Empty cells might cause subsequent data to shift positions, resulting in misaligned columns. "
             "Please review the Excel output carefully and adjust as needed."
         )
-        disclaimer_message = ttk.Label(disclaimer_frame, text=disclaimer_text, wraplength=250, justify='left')
+        disclaimer_message = ttk.Label(
+            disclaimer_frame, text=disclaimer_text, wraplength=250, justify="left"
+        )
         disclaimer_message.pack(pady=5)
+
 
 if __name__ == "__main__":
     root = ttk.Window(themename="cosmo")

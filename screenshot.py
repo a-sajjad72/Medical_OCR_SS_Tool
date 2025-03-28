@@ -1,7 +1,9 @@
-import tkinter as tk
-from PIL import Image, ImageTk, ImageDraw, ImageEnhance
-import pyautogui
 import time
+import tkinter as tk
+
+import pyautogui
+from PIL import Image, ImageDraw, ImageEnhance, ImageTk
+
 
 class SnipTool(tk.Toplevel):
     def __init__(self, parent, screenshot):
@@ -19,9 +21,17 @@ class SnipTool(tk.Toplevel):
         self.tk_dark = ImageTk.PhotoImage(self.dark_screenshot)
 
         # Setup canvas
-        self.canvas = tk.Canvas(self, width=self.screen_width, height=self.screen_height, highlightthickness=0, cursor="crosshair")
+        self.canvas = tk.Canvas(
+            self,
+            width=self.screen_width,
+            height=self.screen_height,
+            highlightthickness=0,
+            cursor="crosshair",
+        )
         self.canvas.pack()
-        self.image_on_canvas = self.canvas.create_image(0, 0, anchor="nw", image=self.tk_dark)
+        self.image_on_canvas = self.canvas.create_image(
+            0, 0, anchor="nw", image=self.tk_dark
+        )
 
         # Variables for selection
         self.start_x = None
@@ -37,9 +47,14 @@ class SnipTool(tk.Toplevel):
     def on_button_press(self, event):
         self.start_x = event.x
         self.start_y = event.y
-        self.rect = self.canvas.create_rectangle(self.start_x, self.start_y,
-                                                 self.start_x, self.start_y,
-                                                 outline="red", width=2)
+        self.rect = self.canvas.create_rectangle(
+            self.start_x,
+            self.start_y,
+            self.start_x,
+            self.start_y,
+            outline="red",
+            width=2,
+        )
 
     def on_mouse_drag(self, event):
         self.canvas.coords(self.rect, self.start_x, self.start_y, event.x, event.y)
@@ -63,10 +78,12 @@ class SnipTool(tk.Toplevel):
         self.selection = (x1, y1, x2, y2)
         self.destroy()
 
+
 def select_region(parent, screenshot):
     snip = SnipTool(parent, screenshot)
     parent.wait_window(snip)
     return snip.selection
+
 
 # Example integration
 if __name__ == "__main__":
@@ -78,11 +95,11 @@ if __name__ == "__main__":
         root.withdraw()
         root.update()  # Force Tkinter to process the hide request
         time.sleep(0.1)  # Give the OS time to hide the window (adjust as needed)
-        
+
         # Now take the screenshot
         screenshot = pyautogui.screenshot().convert("RGB")
         region = select_region(root, screenshot)
-        
+
         root.deiconify()
         if region:
             x1, y1, x2, y2 = region
