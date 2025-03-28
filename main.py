@@ -12,6 +12,9 @@ from utils import resource_path, get_tessbin_path, get_tessdata_path
 import traceback
 import sys
 import site
+import time
+import pyautogui
+from screenshot import select_region
 
 if site.USER_SITE is None:
     # Set a fallback value.
@@ -80,7 +83,7 @@ class OCRApp:
         def _preload():
             engines = list(self.ocr_models.keys())
             for engine in engines:
-                self.loading_label.config(text=f"Loading {engine}...")
+                self.loading_status.set(f"Preloading {engine}...")
                 try:
                     if engine == "PaddleOCR":
                         from OCR_Modules.paddleOCR import initialize_ocr_SLANet_LCNetV2
@@ -235,35 +238,42 @@ class OCRApp:
 
     def take_screenshot(self):
         # Minimize the root window
-        self.root.withdraw()
-        # Capture the screenshot
-        image = self.capture_screenshot()
+        root.withdraw()
+        root.update()  # Force Tkinter to process the hide request
+        time.sleep(0.5)  # Give the OS time to hide the window (adjust as needed)
+
+        # Now take the (initial) screenshot 
+        screenshot = pyautogui.screenshot().convert("RGB")
+        region = select_region(root, screenshot)
+
         # Restore the root window
         self.root.deiconify()
+
+        if region:
+            x1, y1, x2, y2 = region
+            snip_img = screenshot.crop((x1, y1, x2, y2))
+
         # Determine the output directory
         if self.output_directory:
             output_dir = self.output_directory
         else:
             # For screenshots, default to Desktop
             output_dir = os.path.join(os.path.expanduser("~"), "Desktop")
+
         # Ensure output directory exists
         os.makedirs(output_dir, exist_ok=True)
+
         # Save the screenshot image
         base_filename = "screenshot"
         screenshot_path = os.path.join(output_dir, base_filename + ".png")
-        image.save(screenshot_path)
+        snip_img.save(screenshot_path)
+
         # Reset the UI before processing
         self.reset_ui()
+
         # Process the image
         self.is_screenshot = True  # Indicate that this is a screenshot
         self.process_image(screenshot_path)
-
-    def capture_screenshot(self):
-        temp_dir = tempfile.gettempdir()
-        screenshot_path = os.path.join(temp_dir, 'screenshot.png')
-        subprocess.call(['screencapture', '-i', screenshot_path])
-        image = Image.open(screenshot_path)
-        return image
 
     def process_image(self, file_path):
         self.show_progress("Initializing OCR Engine...")
