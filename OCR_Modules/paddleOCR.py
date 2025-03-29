@@ -48,7 +48,10 @@ def process_image(file_path, ocr):
                 data.append({'x': x, 'y': y, 'text': text, 'confidence': confidence, 'bbox': bbox})
 
         return data
-
+    
+    except TypeError as e:
+        logger.error(f"Type error: {str(e)}. Check if the image is valid.")
+        raise
     except Exception as e:
         logger.error(f"Error processing image: {str(e)}")
         raise

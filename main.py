@@ -109,7 +109,8 @@ class OCRApp:
 
                         self.ocr_models[engine] = initialize_easyocr()
                 except Exception as e:
-                    logger.error(f"Error preloading {engine}: {str(e)}")
+                    logger.error(f"Error preloading {engine}: {str(e)}", exec_info=True)
+                    self.loading_status.set(f"Error preloading {engine}: {str(e)}")
 
             self.loading_frame.pack_forget()
 
@@ -242,9 +243,9 @@ class OCRApp:
                     text=f"Output directory set to: {self.output_directory}"
                 )
         except Exception as e:
-            logger.error("Directory selection failed", exc_info=True)
+            logger.error(f"Directory selection failed. {e}", exc_info=True)
             self.status_label.config(
-                text="Error selecting directory. Check log for details."
+                text=f"Error selecting directory. {e}\nCheck log for details."
             )
 
     def update_thresholds(self, event=None):
@@ -304,6 +305,9 @@ class OCRApp:
             # Restore the root window
             self.root.deiconify()
 
+            # Reset the UI before processing
+            self.reset_ui()
+
             if region:
                 x1, y1, x2, y2 = region
                 snip_img = screenshot.crop((x1, y1, x2, y2))
@@ -323,16 +327,13 @@ class OCRApp:
             screenshot_path = os.path.join(output_dir, base_filename + ".png")
             snip_img.save(screenshot_path)
 
-            # Reset the UI before processing
-            self.reset_ui()
-
             # Process the image
             self.is_screenshot = True  # Indicate that this is a screenshot
             self.process_image(screenshot_path)
         except Exception as e:
-            logger.error("Screenshot failed", exc_info=True)
+            logger.error(f"Screenshot failed: {e}", exc_info=True)
             self.status_label.config(
-                text="Screenshot capture failed. Check log for details."
+                text=f"Screenshot capture failed. {e}\nCheck log for details."
             )
             self.root.deiconify()
             return
@@ -349,9 +350,9 @@ class OCRApp:
                 )
                 processing_thread.start()
         except Exception as e:
-            logger.error("Image processing failed", exc_info=True)
+            logger.error(f"Image processing failed. {e}", exc_info=True)
             self.status_label.config(
-                text="Error processing image. Check log for details."
+                text=f"Error processing image. {e}\nCheck log for details."
             )
 
     def show_progress(self, message):
@@ -360,7 +361,6 @@ class OCRApp:
             self.root.update_idletasks()
         self.progress_bar.pack(pady=(0, 10))
         self.progress_bar.start()
-        print(f"called show_progress with {message}")
 
     def hide_progress(self):
         self.progress_bar.stop()
@@ -368,7 +368,6 @@ class OCRApp:
         self.status_label.config(text="")
         if sys.platform == "darwin":
             self.root.update_idletasks()
-        print("called hide_progress")
 
     def _process_image_thread(self, file_path):
         try:
@@ -410,7 +409,7 @@ class OCRApp:
             else:
                 raise ValueError("Please select an OCR engine.")
         except Exception as e:
-            logger.error(f"Error processing image: {str(e)}")
+            logger.error(f"Error processing image: {str(e)}", exc_info=True)
             self.status_label.config(
                 text=f"Error: {str(e)}\nPlease try a different image or OCR engine."
             )
@@ -418,6 +417,7 @@ class OCRApp:
             self.hide_progress()
 
     def process_with_paddleocr(self, file_path):
+        try:
         from OCR_Modules.paddleOCR import \
             draw_bounding_boxes as paddle_draw_bounding_boxes
         from OCR_Modules.paddleOCR import \
@@ -512,12 +512,12 @@ class OCRApp:
             self.status_label.config(text=f"Excel file saved: {output_xlsx}")
             self.display_results(output_image_path, output_xlsx)
         except ValueError as ve:
-            logger.error(f"Tesseract processing error: {str(ve)}")
+            logger.error(f"Tesseract processing error: {str(ve)}", exc_info=True)
             self.status_label.config(
                 text=f"Error: {str(ve)}\nPlease try a different image or OCR engine."
             )
         except Exception as e:
-            logger.error(f"Unexpected error in Tesseract processing: {str(e)}")
+            logger.error(f"Unexpected error in Tesseract processing: {str(e)}", exc_info=True)
             self.status_label.config(
                 text=f"Unexpected error: {str(e)}\nPlease try a different image or OCR engine."
             )
@@ -573,12 +573,12 @@ class OCRApp:
             self.status_label.config(text=f"Excel file saved: {output_xlsx}")
             self.display_results(output_image_path, output_xlsx)
         except ValueError as ve:
-            logger.error(f"EasyOCR processing error: {str(ve)}")
+            logger.error(f"EasyOCR processing error: {str(ve)}", exec_info=True)
             self.status_label.config(
                 text=f"Error: {str(ve)}\nPlease try a different image or OCR engine."
             )
         except Exception as e:
-            logger.error(f"Unexpected error in EasyOCR processing: {str(e)}")
+            logger.error(f"Unexpected error in EasyOCR processing: {str(e)}", exc_info=True)
             self.status_label.config(
                 text=f"Unexpected error: {str(e)}\nPlease try a different image or OCR engine."
             )
@@ -616,9 +616,9 @@ class OCRApp:
             # Setup the sidebar
             self.setup_sidebar()
         except Exception as e:
-            logger.error("Results display failed", exc_info=True)
+            logger.error(f"Results display failed: {e}", exc_info=True)
             self.status_label.config(
-                text="Error displaying results. Check log for details."
+                text=f"Error displaying results. {e}\nCheck log for details."
             )
 
     def reorganize_layout(self):
@@ -730,9 +730,9 @@ class OCRApp:
             # Bind the resize event to the function
             canvas.bind("<Configure>", resize_image)
         except Exception as e:
-            logger.error("Image display failed", exc_info=True)
+            logger.error(f"Image display failed: {e}", exc_info=True)
             self.status_label.config(
-                text="Error displaying image. Check log for details."
+                text=f"Error displaying image. {e}\nCheck log for details."
             )
 
     def generate_excel_image(self, excel_path, output_image_path):
@@ -793,9 +793,9 @@ class OCRApp:
 
             image.save(output_image_path)
         except Exception as e:
-            logger.error("Excel image generation failed", exc_info=True)
+            logger.error(f"Excel image generation failed: {e}", exc_info=True)
             self.status_label.config(
-                text="Error generating preview. Check log for details."
+                text=f"Error generating preview. {e}\nCheck log for details."
             )
             raise
 
