@@ -2,22 +2,19 @@
 setlocal enabledelayedexpansion
 
 :: Get paths using Python utils
-FOR /F "tokens=1,2 delims=;" %%a IN ('python -c "from utils import get_tessbin_path, get_tessdata_path; print(get_tessbin_path() + ';' + get_tessdata_path())"') DO (
-    SET "TESS_BIN=%%a"
-    SET "TESS_DATA=%%b"
+FOR /F "delims=" %%a IN ('python -c "from utils import get_tessbin_path, get_tessdata_path; import os; print(os.path.dirname(get_tessbin_path()))"') DO (
+    SET "TESS_PATH=%%a"
 )
 
 :: Verify paths
-echo Tesseract Binary: !TESS_BIN!
-echo Tesseract Data: !TESS_DATA!
+echo Tesseract Binary: !TESS_PATH!
 
 :: Build command
 pyinstaller --noconfirm --onefile --windowed ^
 --add-data "icons;icons" ^
 --add-data "models;models" ^
 --add-data "simfang.ttf;." ^
---add-binary "!TESS_BIN!;models/tesseract/tesseract.exe" ^
---add-data "!TESS_DATA!;models/tesseract/tessdata" ^
+--add-data "!TESS_PATH!;models/tesseract" ^
 --collect-all paddle ^
 --collect-all paddleocr ^
 --hidden-import paddle ^

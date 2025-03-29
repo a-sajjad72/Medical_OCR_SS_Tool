@@ -11,3 +11,5 @@ pytesseract
 easyocr
 torch==2.2.1
 torchvision
+dotenv
+pyautogui
