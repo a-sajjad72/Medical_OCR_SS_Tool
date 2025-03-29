@@ -1,3 +1,5 @@
+import datetime
+import logging
 import os
 import subprocess
 import sys
@@ -7,6 +9,41 @@ from shutil import which
 from dotenv import load_dotenv
 
 load_dotenv()  # Load .env file if exists
+logger = logging.getLogger()
+
+class ErrorSessionHandler(logging.handlers.TimedRotatingFileHandler):
+    """Custom handler that adds error session header on first error"""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.session_header_logged = False  # Track session state
+
+    def emit(self, record):
+        # Add header before first error
+        if record.levelno >= logging.ERROR and not self.session_header_logged:
+            self.session_header_logged = True
+            self._log_session_header()
+            
+        super().emit(record)
+
+    def _log_session_header(self):
+        header = (
+            "\n" + "=" * 80 + "\n"
+            f"NEW ERROR SESSION: {datetime.datetime.now()}\n"
+            "=" * 80 + "\n"
+        )
+        header_record = logging.makeLogRecord({
+            'msg': header,
+            'levelno': logging.INFO,  # Log as INFO to avoid infinite loop
+            'levelname': 'INFO',
+            'name': 'ErrorSessionHeader'
+        })
+        super().emit(header_record)
+
+
+def handle_uncaught_exception(exc_type, exc_value, exc_traceback):
+    """Handles uncaught exceptions"""
+    logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+    sys.__excepthook__(exc_type, exc_value, exc_traceback)
 
 
 def resource_path(relative_path):
