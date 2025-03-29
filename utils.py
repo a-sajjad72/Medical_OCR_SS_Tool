@@ -11,8 +11,10 @@ from dotenv import load_dotenv
 load_dotenv()  # Load .env file if exists
 logger = logging.getLogger()
 
+
 class ErrorSessionHandler(logging.handlers.TimedRotatingFileHandler):
     """Custom handler that adds error session header on first error"""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.session_header_logged = False  # Track session state
@@ -22,21 +24,26 @@ class ErrorSessionHandler(logging.handlers.TimedRotatingFileHandler):
         if record.levelno >= logging.ERROR and not self.session_header_logged:
             self.session_header_logged = True
             self._log_session_header()
-            
+
         super().emit(record)
 
     def _log_session_header(self):
         header = (
-            "\n" + "=" * 80 + "\n"
-            f"NEW ERROR SESSION: {datetime.datetime.now()}\n"
-            "=" * 80 + "\n"
+            "\n"
+            + "=" * 80
+            + "\n"
+            + f"NEW ERROR SESSION: {datetime.datetime.now()}\n"
+            + "=" * 80
+            + "\n"
         )
-        header_record = logging.makeLogRecord({
-            'msg': header,
-            'levelno': logging.INFO,  # Log as INFO to avoid infinite loop
-            'levelname': 'INFO',
-            'name': 'ErrorSessionHeader'
-        })
+        header_record = logging.makeLogRecord(
+            {
+                "msg": header,
+                "levelno": logging.INFO,  # Log as INFO to avoid infinite loop
+                "levelname": "INFO",
+                "name": "ErrorSessionHeader",
+            }
+        )
         super().emit(header_record)
 
 
