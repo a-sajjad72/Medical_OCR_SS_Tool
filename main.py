@@ -1,4 +1,5 @@
 import logging
+import logging.handlers
 import os
 import site
 import subprocess
@@ -16,7 +17,8 @@ from PIL import Image, ImageTk
 from ttkbootstrap.constants import *
 
 from screenshot import select_region
-from utils import get_tessbin_path, get_tessdata_path, resource_path
+from utils import (ErrorSessionHandler, get_tessbin_path, get_tessdata_path,
+                   handle_uncaught_exception, logger, resource_path)
 
 if site.USER_SITE is None:
     # Set a fallback value.
@@ -29,9 +31,15 @@ os.environ["TESSDATA_PREFIX"] = get_tessdata_path()
 
 # Set up logging
 logging.basicConfig(
-    level=logging.INFO, format="[%(asctime)s] [%(levelname)8s] %(message)s"
+    level=logging.INFO,
+    format="[%(asctime)s] [%(levelname)8s] [%(filename)s:%(lineno)d] %(message)s",
+    handlers=[
+        ErrorSessionHandler(
+            "errors.log", when="midnight", backupCount=7, encoding="utf-8"
+        ),
+        logging.StreamHandler(),
+    ],
 )
-logger = logging.getLogger(__name__)
 
 
 class OCRApp:
@@ -225,12 +233,18 @@ class OCRApp:
         )
 
     def select_output_directory(self):
-        directory = filedialog.askdirectory()
-        if directory:
-            self.output_directory = directory
-            logger.info(f"Output directory set to: {self.output_directory}")
+        try:
+            directory = filedialog.askdirectory()
+            if directory:
+                self.output_directory = directory
+                logger.info(f"Output directory set to: {self.output_directory}")
+                self.status_label.config(
+                    text=f"Output directory set to: {self.output_directory}"
+                )
+        except Exception as e:
+            logger.error("Directory selection failed", exc_info=True)
             self.status_label.config(
-                text=f"Output directory set to: {self.output_directory}"
+                text="Error selecting directory. Check log for details."
             )
 
     def update_thresholds(self, event=None):
@@ -277,54 +291,68 @@ class OCRApp:
             self.process_image(file_path)
 
     def take_screenshot(self):
-        # Minimize the root window
-        root.withdraw()
-        root.update()  # Force Tkinter to process the hide request
-        time.sleep(0.5)  # Give the OS time to hide the window (adjust as needed)
+        try:
+            # Minimize the root window
+            self.root.withdraw()
+            self.root.update()  # Force Tkinter to process the hide request
+            time.sleep(0.5)  # Give the OS time to hide the window (adjust as needed)
 
-        # Now take the (initial) screenshot
-        screenshot = pyautogui.screenshot().convert("RGB")
-        region = select_region(root, screenshot)
+            # Now take the (initial) screenshot
+            screenshot = pyautogui.screenshot().convert("RGB")
+            region = select_region(self.root, screenshot)
 
-        # Restore the root window
-        self.root.deiconify()
+            # Restore the root window
+            self.root.deiconify()
 
-        if region:
-            x1, y1, x2, y2 = region
-            snip_img = screenshot.crop((x1, y1, x2, y2))
+            if region:
+                x1, y1, x2, y2 = region
+                snip_img = screenshot.crop((x1, y1, x2, y2))
 
-        # Determine the output directory
-        if self.output_directory:
-            output_dir = self.output_directory
-        else:
-            # For screenshots, default to Desktop
-            output_dir = os.path.join(os.path.expanduser("~"), "Desktop")
+            # Determine the output directory
+            if self.output_directory:
+                output_dir = self.output_directory
+            else:
+                # For screenshots, default to Desktop
+                output_dir = os.path.join(os.path.expanduser("~"), "Desktop")
 
-        # Ensure output directory exists
-        os.makedirs(output_dir, exist_ok=True)
+            # Ensure output directory exists
+            os.makedirs(output_dir, exist_ok=True)
 
-        # Save the screenshot image
-        base_filename = "screenshot"
-        screenshot_path = os.path.join(output_dir, base_filename + ".png")
-        snip_img.save(screenshot_path)
+            # Save the screenshot image
+            base_filename = "screenshot"
+            screenshot_path = os.path.join(output_dir, base_filename + ".png")
+            snip_img.save(screenshot_path)
 
-        # Reset the UI before processing
-        self.reset_ui()
+            # Reset the UI before processing
+            self.reset_ui()
 
-        # Process the image
-        self.is_screenshot = True  # Indicate that this is a screenshot
-        self.process_image(screenshot_path)
+            # Process the image
+            self.is_screenshot = True  # Indicate that this is a screenshot
+            self.process_image(screenshot_path)
+        except Exception as e:
+            logger.error("Screenshot failed", exc_info=True)
+            self.status_label.config(
+                text="Screenshot capture failed. Check log for details."
+            )
+            self.root.deiconify()
+            return
 
     def process_image(self, file_path):
-        self.show_progress("Initializing OCR Engine...")
-        # Use main thread for macOS UI operations
-        if sys.platform == "darwin":
-            self.root.after(0, self._process_image_thread, file_path)
-        else:
-            processing_thread = threading.Thread(
-                target=self._process_image_thread, args=(file_path,)
+        try:
+            self.show_progress("Initializing OCR Engine...")
+            # Use main thread for macOS UI operations
+            if sys.platform == "darwin":
+                self.root.after(0, self._process_image_thread, file_path)
+            else:
+                processing_thread = threading.Thread(
+                    target=self._process_image_thread, args=(file_path,)
+                )
+                processing_thread.start()
+        except Exception as e:
+            logger.error("Image processing failed", exc_info=True)
+            self.status_label.config(
+                text="Error processing image. Check log for details."
             )
-            processing_thread.start()
 
     def show_progress(self, message):
         self.status_label.config(text=message)
@@ -562,30 +590,36 @@ class OCRApp:
             self._safe_display_results(image_path, excel_path)
 
     def _safe_display_results(self, image_path, excel_path):
-        self.reorganize_layout()
+        try:
+            self.reorganize_layout()
 
-        # Clear previous images
-        for widget in self.left_frame.winfo_children():
-            widget.destroy()
-        for widget in self.middle_frame.winfo_children():
-            widget.destroy()
-        for widget in self.right_frame.winfo_children():
-            widget.destroy()
+            # Clear previous images
+            for widget in self.left_frame.winfo_children():
+                widget.destroy()
+            for widget in self.middle_frame.winfo_children():
+                widget.destroy()
+            for widget in self.right_frame.winfo_children():
+                widget.destroy()
 
-        # Display image with bounding boxes
-        self.display_image(image_path, self.left_frame)
+            # Display image with bounding boxes
+            self.display_image(image_path, self.left_frame)
 
-        # Display Excel image
-        excel_image_path = os.path.splitext(excel_path)[0] + "_excel_image.png"
-        self.generate_excel_image(excel_path, excel_image_path)
+            # Display Excel image
+            excel_image_path = os.path.splitext(excel_path)[0] + "_excel_image.png"
+            self.generate_excel_image(excel_path, excel_image_path)
 
-        # Add padding to the middle frame
-        padding_frame = ttk.Frame(self.middle_frame, padding=20)
-        padding_frame.pack(fill=tk.BOTH, expand=True)
-        self.display_image(excel_image_path, padding_frame)
+            # Add padding to the middle frame
+            padding_frame = ttk.Frame(self.middle_frame, padding=20)
+            padding_frame.pack(fill=tk.BOTH, expand=True)
+            self.display_image(excel_image_path, padding_frame)
 
-        # Setup the sidebar
-        self.setup_sidebar()
+            # Setup the sidebar
+            self.setup_sidebar()
+        except Exception as e:
+            logger.error("Results display failed", exc_info=True)
+            self.status_label.config(
+                text="Error displaying results. Check log for details."
+            )
 
     def reorganize_layout(self):
         if sys.platform == "darwin" and not self.root.winfo_exists():
@@ -661,92 +695,109 @@ class OCRApp:
         self.right_frame.pack(side=tk.RIGHT, fill=tk.Y)
 
     def display_image(self, image_path, panel):
-        image = Image.open(image_path)
+        try:
+            image = Image.open(image_path)
 
-        # Create a canvas to display the image
-        canvas = tk.Canvas(panel, bg="white")
-        canvas.pack(fill=tk.BOTH, expand=True)
+            # Create a canvas to display the image
+            canvas = tk.Canvas(panel, bg="white")
+            canvas.pack(fill=tk.BOTH, expand=True)
 
-        # Function to resize the image when the panel size changes
-        def resize_image(event):
-            # Get the size of the canvas
-            canvas_width = event.width
-            canvas_height = event.height
+            # Function to resize the image when the panel size changes
+            def resize_image(event):
+                # Get the size of the canvas
+                canvas_width = event.width
+                canvas_height = event.height
 
-            # Calculate the scaling factor
-            width_ratio = canvas_width / image.width
-            height_ratio = canvas_height / image.height
-            scale_factor = min(width_ratio, height_ratio, 1.0)  # Do not upscale images
+                # Calculate the scaling factor
+                width_ratio = canvas_width / image.width
+                height_ratio = canvas_height / image.height
+                scale_factor = min(
+                    width_ratio, height_ratio, 1.0
+                )  # Do not upscale images
 
-            new_width = int(image.width * scale_factor)
-            new_height = int(image.height * scale_factor)
+                new_width = int(image.width * scale_factor)
+                new_height = int(image.height * scale_factor)
 
-            resized_image = image.resize((new_width, new_height), Image.LANCZOS)
-            photo = ImageTk.PhotoImage(resized_image)
+                resized_image = image.resize((new_width, new_height), Image.LANCZOS)
+                photo = ImageTk.PhotoImage(resized_image)
 
-            canvas.delete("all")
-            canvas.create_image(
-                canvas_width / 2, canvas_height / 2, image=photo, anchor="center"
+                canvas.delete("all")
+                canvas.create_image(
+                    canvas_width / 2, canvas_height / 2, image=photo, anchor="center"
+                )
+                canvas.image = photo  # Keep a reference
+
+            # Bind the resize event to the function
+            canvas.bind("<Configure>", resize_image)
+        except Exception as e:
+            logger.error("Image display failed", exc_info=True)
+            self.status_label.config(
+                text="Error displaying image. Check log for details."
             )
-            canvas.image = photo  # Keep a reference
-
-        # Bind the resize event to the function
-        canvas.bind("<Configure>", resize_image)
 
     def generate_excel_image(self, excel_path, output_image_path):
-        from openpyxl import load_workbook
-        from PIL import Image, ImageDraw, ImageFont
-
-        wb = load_workbook(excel_path)
-        ws = wb.active
-
-        # Increase cell size and font size
-        cell_width = 90
-        cell_height = 30
-        font_size = 80
-        border_size = 40  # Increased border size
-
-        max_col = ws.max_column
-        max_row = ws.max_row
-        image_width = cell_width * max_col + 2 * border_size
-        image_height = cell_height * max_row + 2 * border_size
-
-        image = Image.new("RGB", (image_width, image_height), "white")
-        draw = ImageDraw.Draw(image)
         try:
-            font = ImageFont.truetype("arial.ttf", font_size)
-        except:
-            font = ImageFont.load_default()
+            from openpyxl import load_workbook
+            from PIL import Image, ImageDraw, ImageFont
 
-        for row in ws.iter_rows():
-            for cell in row:
-                col_idx = cell.column - 1
-                row_idx = cell.row - 1
-                x1 = col_idx * cell_width + border_size
-                y1 = row_idx * cell_height + border_size
-                x2 = x1 + cell_width
-                y2 = y1 + cell_height
+            wb = load_workbook(excel_path)
+            ws = wb.active
 
-                # Draw cell background
-                fill_color = "FFFFFF"  # Default fill
-                if cell.fill and cell.fill.fgColor:
-                    if cell.fill.fgColor.type == "rgb":
-                        fill_color = cell.fill.fgColor.rgb[-6:]
-                    elif cell.fill.fgColor.type == "indexed":
-                        fill_color = "FFFFFF"  # Handle indexed colors as white
+            # Increase cell size and font size
+            cell_width = 90
+            cell_height = 30
+            font_size = 80
+            border_size = 40  # Increased border size
 
-                draw.rectangle([x1, y1, x2, y2], fill=f"#{fill_color}", outline="black")
+            max_col = ws.max_column
+            max_row = ws.max_row
+            image_width = cell_width * max_col + 2 * border_size
+            image_height = cell_height * max_row + 2 * border_size
 
-                # Draw cell text
-                text = str(cell.value) if cell.value is not None else ""
-                bbox = font.getbbox(text)
-                text_width = bbox[2] - bbox[0]
-                text_height = bbox[3] - bbox[1]
-                text_x = x1 + (cell_width - text_width) / 2
-                text_y = y1 + (cell_height - text_height) / 2
-                draw.text((text_x, text_y), text, fill="black", font=font)
+            image = Image.new("RGB", (image_width, image_height), "white")
+            draw = ImageDraw.Draw(image)
+            try:
+                font = ImageFont.truetype("arial.ttf", font_size)
+            except:
+                font = ImageFont.load_default()
 
-        image.save(output_image_path)
+            for row in ws.iter_rows():
+                for cell in row:
+                    col_idx = cell.column - 1
+                    row_idx = cell.row - 1
+                    x1 = col_idx * cell_width + border_size
+                    y1 = row_idx * cell_height + border_size
+                    x2 = x1 + cell_width
+                    y2 = y1 + cell_height
+
+                    # Draw cell background
+                    fill_color = "FFFFFF"  # Default fill
+                    if cell.fill and cell.fill.fgColor:
+                        if cell.fill.fgColor.type == "rgb":
+                            fill_color = cell.fill.fgColor.rgb[-6:]
+                        elif cell.fill.fgColor.type == "indexed":
+                            fill_color = "FFFFFF"  # Handle indexed colors as white
+
+                    draw.rectangle(
+                        [x1, y1, x2, y2], fill=f"#{fill_color}", outline="black"
+                    )
+
+                    # Draw cell text
+                    text = str(cell.value) if cell.value is not None else ""
+                    bbox = font.getbbox(text)
+                    text_width = bbox[2] - bbox[0]
+                    text_height = bbox[3] - bbox[1]
+                    text_x = x1 + (cell_width - text_width) / 2
+                    text_y = y1 + (cell_height - text_height) / 2
+                    draw.text((text_x, text_y), text, fill="black", font=font)
+
+            image.save(output_image_path)
+        except Exception as e:
+            logger.error("Excel image generation failed", exc_info=True)
+            self.status_label.config(
+                text="Error generating preview. Check log for details."
+            )
+            raise
 
     def setup_sidebar(self):
         # Sidebar content
@@ -846,6 +897,7 @@ class OCRApp:
 
 
 if __name__ == "__main__":
+    sys.excepthook = handle_uncaught_exception
     root = ttk.Window(themename="cosmo")
     app = OCRApp(root)
     root.mainloop()
