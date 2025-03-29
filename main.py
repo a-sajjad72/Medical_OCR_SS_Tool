@@ -417,7 +417,6 @@ class OCRApp:
             self.hide_progress()
 
     def process_with_paddleocr(self, file_path):
-        try:
         from OCR_Modules.paddleOCR import \
             draw_bounding_boxes as paddle_draw_bounding_boxes
         from OCR_Modules.paddleOCR import \
