@@ -1,6 +1,6 @@
 import time
 import tkinter as tk
-import os
+import sys
 import subprocess
 import tempfile
 
@@ -90,7 +90,7 @@ def select_region(parent, screenshot):
 
 def capture_screenshot(root_win):
     # Capture the screenshot of the entire screen
-    if os.name == 'win32':
+    if sys.platform == "win32":
         screenshot = pyautogui.screenshot().convert("RGB")
         region = select_region(root_win, screenshot)
         if region:
