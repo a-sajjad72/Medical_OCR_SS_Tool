@@ -1,5 +1,9 @@
 import time
 import tkinter as tk
+import os
+import subprocess
+import tempfile
+
 
 import pyautogui
 from PIL import Image, ImageDraw, ImageEnhance, ImageTk
@@ -84,6 +88,24 @@ def select_region(parent, screenshot):
     parent.wait_window(snip)
     return snip.selection
 
+def capture_screenshot(root_win):
+    # Capture the screenshot of the entire screen
+    if os.name == 'win32':
+        screenshot = pyautogui.screenshot().convert("RGB")
+        region = select_region(root_win, screenshot)
+        if region:
+            x1, y1, x2, y2 = region
+            snip_img = screenshot.crop((x1, y1, x2, y2))
+        return snip_img
+    else:
+        temp_dir = tempfile.gettempdir()
+        screenshot_path = os.path.join(temp_dir, 'screenshot.png')
+        subprocess.call(['screencapture', '-ix', screenshot_path])
+        image = Image.open(screenshot_path)
+        return image
+
+
+
 
 # Example integration
 if __name__ == "__main__":
@@ -97,15 +119,11 @@ if __name__ == "__main__":
         time.sleep(0.1)  # Give the OS time to hide the window (adjust as needed)
 
         # Now take the screenshot
-        screenshot = pyautogui.screenshot().convert("RGB")
-        region = select_region(root, screenshot)
-
-        root.deiconify()
-        if region:
-            x1, y1, x2, y2 = region
-            snip_img = screenshot.crop((x1, y1, x2, y2))
+        snip_img = capture_screenshot(root)
+        if snip_img:
             snip_img.save("snip_from_app.png")
-            print(f"Captured region: x={x1}, y={y1}, width={x2-x1}, height={y2-y1}")
+            snip_img.show()
+        root.deiconify()
 
     btn = tk.Button(root, text="Select Region", command=do_snip)
     btn.pack(pady=20)

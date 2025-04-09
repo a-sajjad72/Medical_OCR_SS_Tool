@@ -1,22 +1,17 @@
 import logging
-import logging.handlers
 import os
 import site
-import subprocess
 import sys
-import tempfile
 import threading
 import time
 import tkinter as tk
-import traceback
 from tkinter import filedialog
 
-import pyautogui
 import ttkbootstrap as ttk
 from PIL import Image, ImageTk
 from ttkbootstrap.constants import *
 
-from screenshot import select_region
+from screenshot import capture_screenshot
 from utils import (ErrorSessionHandler, get_tessbin_path, get_tessdata_path,
                    handle_uncaught_exception, logger, resource_path)
 
@@ -298,19 +293,12 @@ class OCRApp:
             self.root.update()  # Force Tkinter to process the hide request
             time.sleep(0.5)  # Give the OS time to hide the window (adjust as needed)
 
-            # Now take the (initial) screenshot
-            screenshot = pyautogui.screenshot().convert("RGB")
-            region = select_region(self.root, screenshot)
-
+            screenshot = capture_screenshot(self.root)
             # Restore the root window
             self.root.deiconify()
 
             # Reset the UI before processing
             self.reset_ui()
-
-            if region:
-                x1, y1, x2, y2 = region
-                snip_img = screenshot.crop((x1, y1, x2, y2))
 
             # Determine the output directory
             if self.output_directory:
@@ -325,7 +313,7 @@ class OCRApp:
             # Save the screenshot image
             base_filename = "screenshot"
             screenshot_path = os.path.join(output_dir, base_filename + ".png")
-            snip_img.save(screenshot_path)
+            screenshot.save(screenshot_path)
 
             # Process the image
             self.is_screenshot = True  # Indicate that this is a screenshot
