@@ -292,16 +292,15 @@ class OCRApp:
 
     def take_screenshot(self):
         try:
-            # Minimize the root window
-            self.root.withdraw()
-            self.root.update()  # Force Tkinter to process the hide request
-            time.sleep(0.5)  # Give the OS time to hide the window (adjust as needed)
+            self.root.attributes("-alpha", 0.0)
+            self.root.update_idletasks()
+            self.root.update()
 
-            screenshot = capture_screenshot(self.root)
-            # Restore the root window
-            self.root.deiconify()
+            screenshot = capture_screenshot(root_win=self.root)
 
-            # Reset the UI before processing
+            self.root.attributes("-alpha", 1.0)
+            self.root.focus_force()
+            self.root.lift()
             self.reset_ui()
 
             # Determine the output directory
@@ -327,7 +326,6 @@ class OCRApp:
             self.status_label.config(
                 text=f"Screenshot capture failed. {e}\nCheck log for details."
             )
-            self.root.deiconify()
             return
 
     def process_image(self, file_path):
