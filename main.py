@@ -1,3 +1,7 @@
+from utils import ensure_locale
+
+ensure_locale()
+
 import logging
 import os
 import site

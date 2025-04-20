@@ -1,4 +1,5 @@
 import datetime
+import locale
 import logging
 import logging.handlers
 import os
@@ -190,3 +191,29 @@ def get_tessdata_path():
 
     else:
         raise RuntimeError(f"Unsupported platform: {sys.platform}")
+
+def ensure_locale():
+    """Nuclear option for ttkbootstrap locale conflicts"""
+    try:
+        # Completely override environment variables first
+        os.environ["LC_ALL"] = "en_US.UTF-8"
+        os.environ["LANG"] = "en_US.UTF-8"
+        os.environ["LC_CTYPE"] = "en_US.UTF-8"
+        os.environ["LC_TIME"] = "en_US.UTF-8"
+        
+        # Force reset Python's internal locale tracking
+        locale.setlocale(locale.LC_ALL, "en_US.UTF-8")
+        locale.setlocale(locale.LC_TIME, "en_US.UTF-8")
+        
+    except locale.Error:
+        try:
+            # Fallback to C.UTF-8 if available
+            os.environ["LC_ALL"] = "C.UTF-8"
+            locale.setlocale(locale.LC_ALL, "C.UTF-8")
+        except:
+            # Final desperate fallback
+            os.environ["LC_ALL"] = "C"
+            locale.setlocale(locale.LC_ALL, "")
+    
+    print("Final locale settings:", locale.getlocale())
+    
