@@ -9,7 +9,7 @@ import sys
 import threading
 import time
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 
 import ttkbootstrap as ttk
 from PIL import Image, ImageTk
@@ -46,74 +46,50 @@ class OCRApp:
         self.root = root
         self.root.title("OCR to Excel Converter")
         self.root.geometry("1280x720")
-        # Set application icon to 'icon.png'
         self.icon_image = tk.PhotoImage(file=resource_path("icons/icon.png"))
         self.root.iconphoto(False, self.icon_image)
-        self.style = ttk.Style("cosmo")  # Use a modern theme
+        self.style = ttk.Style("cosmo")
         self.ocr_engine = tk.StringVar()
         self.ocr_engine.set("PaddleOCR")
-
-        # Confidence thresholds
         self.green_threshold = tk.IntVar(value=97)
         self.yellow_threshold = tk.IntVar(value=92)
-
-        # Output directory
         self.output_directory = None
-
-        self.setup_ui()
-
         self.ocr_models = {"PaddleOCR": None, "Tesseract": None, "EasyOCR": None}
-        self.loading_status = tk.StringVar()
-        self.setup_loading_screen()
-        self.root.after(100, self.preload_engines)  # Non-blocking preload
+        # Remove loading_status and loading screen
+        self.setup_ui()
+        self.preload_engines_synchronously()
 
-    def setup_loading_screen(self):
-        self.loading_frame = ttk.Frame(self.root)
-        self.loading_frame.pack(fill=tk.BOTH, expand=True)
-
-        self.loading_label = ttk.Label(
-            self.loading_frame, textvariable=self.loading_status, font=("Helvetica", 14)
-        )
-        self.loading_label.pack(pady=20)
-
-        self.loading_progress = ttk.Progressbar(
-            self.loading_frame, mode="indeterminate"
-        )
-        self.loading_progress.pack(pady=10)
-
-        self.loading_progress.start()
-
-    def preload_engines(self):
-        """Non-blocking background preloading"""
-
-        def _preload():
-            engines = list(self.ocr_models.keys())
-            for engine in engines:
-                self.loading_status.set(f"Preloading {engine}...")
-                try:
-                    if engine == "PaddleOCR":
-                        from OCR_Modules.paddleOCR import \
-                            initialize_ocr_SLANet_LCNetV2
-
-                        self.ocr_models[engine] = initialize_ocr_SLANet_LCNetV2()
-                    elif engine == "Tesseract":
-                        from OCR_Modules.tesseractOCR import \
-                            initialize_tesseract
-
-                        self.ocr_models[engine] = initialize_tesseract(
-                            get_tessbin_path()
-                        )
-                    elif engine == "EasyOCR":
-                        from OCR_Modules.easyOCR import initialize_easyocr
-
-                        self.ocr_models[engine] = initialize_easyocr()
-                except Exception as e:
-                    logger.error(f"Error preloading {engine}: {str(e)}", exec_info=True)
-                    self.loading_status.set(f"Error preloading {engine}: {str(e)}")
-
-            self.loading_frame.pack_forget()
-
-        threading.Thread(target=_preload).start()
+    def preload_engines_synchronously(self):
+        # Show a modal dialog while loading
+        loading_dialog = tk.Toplevel(self.root)
+        loading_dialog.title("Loading Engines")
+        loading_dialog.geometry("350x100")
+        loading_dialog.transient(self.root)
+        loading_dialog.grab_set()
+        label = ttk.Label(loading_dialog, text="Loading OCR Engines... Please wait.", font=("Helvetica", 14))
+        label.pack(pady=30)
+        self.root.update()
+        errors = []
+        for engine in self.ocr_models.keys():
+            try:
+                if engine == "PaddleOCR":
+                    from OCR_Modules.paddleOCR import initialize_ocr_SLANet_LCNetV2
+                    self.ocr_models[engine] = initialize_ocr_SLANet_LCNetV2()
+                elif engine == "Tesseract":
+                    from OCR_Modules.tesseractOCR import initialize_tesseract
+                    self.ocr_models[engine] = initialize_tesseract(get_tessbin_path())
+                elif engine == "EasyOCR":
+                    from OCR_Modules.easyOCR import initialize_easyocr
+                    self.ocr_models[engine] = initialize_easyocr()
+                logger.info(f"{engine} preloaded successfully.")
+            except Exception as e:
+                logger.error(f"Error preloading {engine}: {str(e)}", exc_info=True)
+                errors.append(f"{engine}: {str(e)}")
+        loading_dialog.destroy()
+        if errors:
+            messagebox.showerror("OCR Engine Preload Error", "\n".join(errors), parent=self.root)
+        else:
+            messagebox.showinfo("OCR Engines Ready", "All OCR engines have been successfully preloaded and are ready to use.", parent=self.root)
 
     def setup_ui(self):
         # Main frame
