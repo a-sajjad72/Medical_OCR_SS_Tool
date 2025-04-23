@@ -57,20 +57,26 @@ class OCRApp:
         self.ocr_models = {"PaddleOCR": None, "Tesseract": None, "EasyOCR": None}
         # Remove loading_status and loading screen
         self.setup_ui()
-        self.preload_engines_synchronously()
+        self.preload_engines_with_progress()
 
-    def preload_engines_synchronously(self):
-        # Show a modal dialog while loading
-        loading_dialog = tk.Toplevel(self.root)
-        loading_dialog.title("Loading Engines")
-        loading_dialog.geometry("350x100")
-        loading_dialog.transient(self.root)
-        loading_dialog.grab_set()
-        label = ttk.Label(loading_dialog, text="Loading OCR Engines... Please wait.", font=("Helvetica", 14))
-        label.pack(pady=30)
+    def preload_engines_with_progress(self):
+        engines = list(self.ocr_models.keys())
+        total = len(engines)
+        self.loading_status = tk.StringVar()
+        self.loading_status.set("Initializing...")
+        # Progress bar and label at the top of center_frame
+        self.loading_frame = ttk.Frame(self.center_frame)
+        self.loading_frame.pack(pady=30)
+        self.loading_label = ttk.Label(self.loading_frame, textvariable=self.loading_status, font=("Helvetica", 14))
+        self.loading_label.pack(pady=(0, 10))
+        self.loading_progress = ttk.Progressbar(self.loading_frame, mode="determinate", length=300, maximum=total)
+        self.loading_progress.pack()
         self.root.update()
         errors = []
-        for engine in self.ocr_models.keys():
+        for idx, engine in enumerate(engines, 1):
+            self.loading_status.set(f"Loading {engine}...")
+            self.loading_progress['value'] = idx - 1
+            self.root.update()
             try:
                 if engine == "PaddleOCR":
                     from OCR_Modules.paddleOCR import initialize_ocr_SLANet_LCNetV2
@@ -85,11 +91,11 @@ class OCRApp:
             except Exception as e:
                 logger.error(f"Error preloading {engine}: {str(e)}", exc_info=True)
                 errors.append(f"{engine}: {str(e)}")
-        loading_dialog.destroy()
+            self.loading_progress['value'] = idx
+            self.root.update()
+        self.loading_frame.destroy()
         if errors:
             messagebox.showerror("OCR Engine Preload Error", "\n".join(errors), parent=self.root)
-        else:
-            messagebox.showinfo("OCR Engines Ready", "All OCR engines have been successfully preloaded and are ready to use.", parent=self.root)
 
     def setup_ui(self):
         # Main frame
@@ -306,13 +312,23 @@ class OCRApp:
 
     def process_image(self, file_path):
         try:
-            self.show_progress("Initializing OCR Engine...")
+            # Use the same progress UI as preloading
+            self.loading_status = tk.StringVar()
+            self.loading_status.set("Processing image...")
+            self.loading_frame = ttk.Frame(self.center_frame)
+            self.loading_frame.pack(pady=30)
+            self.loading_label = ttk.Label(self.loading_frame, textvariable=self.loading_status, font=("Helvetica", 14))
+            self.loading_label.pack(pady=(0, 10))
+            self.loading_progress = ttk.Progressbar(self.loading_frame, mode="indeterminate", length=300)
+            self.loading_progress.pack()
+            self.loading_progress.start()
+            self.root.update()
             # Use main thread for macOS UI operations
             if sys.platform == "darwin":
-                self.root.after(0, self._process_image_thread, file_path)
+                self.root.after(0, self._process_image_thread_with_progress, file_path)
             else:
                 processing_thread = threading.Thread(
-                    target=self._process_image_thread, args=(file_path,)
+                    target=self._process_image_thread_with_progress, args=(file_path,)
                 )
                 processing_thread.start()
         except Exception as e:
@@ -321,51 +337,11 @@ class OCRApp:
                 text=f"Error processing image. {e}\nCheck log for details."
             )
 
-    def show_progress(self, message):
-        self.status_label.config(text=message)
-        if sys.platform == "darwin":
-            self.root.update_idletasks()
-        self.progress_bar.pack(pady=(0, 10))
-        self.progress_bar.start()
-
-    def hide_progress(self):
-        self.progress_bar.stop()
-        self.progress_bar.pack_forget()
-        self.status_label.config(text="")
-        if sys.platform == "darwin":
-            self.root.update_idletasks()
-
-    def _process_image_thread(self, file_path):
+    def _process_image_thread_with_progress(self, file_path):
         try:
             ocr_engine = self.ocr_engine.get()
-
-            # Check if engine needs initialization
-            if not self.ocr_models.get(ocr_engine):
-                self.show_progress(f"Loading {ocr_engine}...")
-                # Lazy load the engine if not preloaded
-                if ocr_engine == "PaddleOCR":
-                    from OCR_Modules.paddleOCR import \
-                        initialize_ocr_SLANet_LCNetV2
-
-                    self.ocr_models[ocr_engine] = initialize_ocr_SLANet_LCNetV2()
-                elif ocr_engine == "Tesseract":
-                    from OCR_Modules.tesseractOCR import initialize_tesseract
-
-                    self.ocr_models[ocr_engine] = initialize_tesseract(
-                        get_tessbin_path()
-                    )
-                elif ocr_engine == "EasyOCR":
-                    from OCR_Modules.easyOCR import initialize_easyocr
-
-                    self.ocr_models[ocr_engine] = initialize_easyocr()
-                self.hide_progress()
-
-            self.show_progress("Processing image...")
-
-            # Show progress bar in the center frame
-            self.progress_bar.pack(pady=(0, 10))
-            self.progress_bar.start()
-
+            self.loading_status.set("Processing image, please wait...")
+            self.root.update()
             if ocr_engine == "PaddleOCR":
                 self.process_with_paddleocr(file_path)
             elif ocr_engine == "Tesseract":
@@ -380,7 +356,11 @@ class OCRApp:
                 text=f"Error: {str(e)}\nPlease try a different image or OCR engine."
             )
         finally:
-            self.hide_progress()
+            if hasattr(self, 'loading_progress'):
+                self.loading_progress.stop()
+            if hasattr(self, 'loading_frame') and self.loading_frame.winfo_exists():
+                self.loading_frame.destroy()
+            self.root.update()
 
     def process_with_paddleocr(self, file_path):
         from OCR_Modules.paddleOCR import \
@@ -391,10 +371,15 @@ class OCRApp:
         from OCR_Modules.paddleOCR import save_as_xlsx as paddle_save_as_xlsx
 
         data = paddle_process_image(file_path, self.ocr_models["PaddleOCR"])
+
+        if not data:
+            raise ValueError("No data extracted from image.")
+        
+        # Group data into rows
         rows = paddle_group_into_rows(data)
 
         if not rows:
-            raise ValueError("No data extracted from image.")
+            raise ValueError("No rows extracted from image.")
 
         # Determine the output directory
         if self.output_directory:
@@ -538,7 +523,7 @@ class OCRApp:
             self.status_label.config(text=f"Excel file saved: {output_xlsx}")
             self.display_results(output_image_path, output_xlsx)
         except ValueError as ve:
-            logger.error(f"EasyOCR processing error: {str(ve)}", exec_info=True)
+            logger.error(f"EasyOCR processing error: {str(ve)}", exc_info=True)
             self.status_label.config(
                 text=f"Error: {str(ve)}\nPlease try a different image or OCR engine."
             )
