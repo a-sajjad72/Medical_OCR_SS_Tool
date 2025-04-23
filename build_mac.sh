@@ -4,7 +4,7 @@
 TESS_BIN=$(python -c "from utils import get_tessbin_path; print(get_tessbin_path())")
 TESS_DATA=$(python -c "from utils import get_tessdata_path; print(get_tessdata_path())")
 
-pyinstaller --noconfirm --onefile --windowed \
+pyinstaller --noconfirm --onedir --windowed \
 --add-data "icons:icons" \
 --add-data "models:models" \
 --add-data "simfang.ttf:." \
@@ -16,6 +16,6 @@ pyinstaller --noconfirm --onefile --windowed \
 --hidden-import paddleocr \
 --hidden-import easyocr \
 --hidden-import pytesseract \
---icon "icons/icon.png" \
+--icon "icons/icon.icns" \
 --name "OCR to Excel Converter" \
 main.py --clean
