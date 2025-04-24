@@ -1,3 +1,43 @@
+# SPLASH SCREEN SETUP (before heavy imports)
+import sys
+import threading
+import tkinter as tk
+
+from PIL import Image, ImageTk
+
+from utils import resource_path
+
+
+def show_splash():
+    splash = tk.Tk()
+    splash.overrideredirect(True)
+    splash.geometry("400x300+600+300")
+    splash.configure(bg="white")
+    try:
+        img = Image.open(resource_path("icons/icon.png"))
+        img = img.resize((100, 100))
+        photo = ImageTk.PhotoImage(img)
+        label_img = tk.Label(splash, image=photo, bg="white")
+        label_img.image = photo
+        label_img.pack(pady=(40, 10))
+    except Exception:
+        pass
+    label = tk.Label(
+        splash, text="Loading Medical OCR Tool...", font=("Helvetica", 16), bg="white"
+    )
+    label.pack(pady=(10, 20))
+    splash.update()
+    return splash
+
+
+splash = show_splash()
+
+
+def close_splash():
+    if splash:
+        splash.destroy()
+
+
 from utils import ensure_locale
 
 ensure_locale()
@@ -17,7 +57,7 @@ from ttkbootstrap.constants import *
 
 from screenshot import capture_screenshot
 from utils import (ErrorSessionHandler, get_tessbin_path, get_tessdata_path,
-                   handle_uncaught_exception, logger, resource_path)
+                   handle_uncaught_exception, logger)
 
 if site.USER_SITE is None:
     # Set a fallback value.
@@ -67,35 +107,49 @@ class OCRApp:
         # Progress bar and label at the top of center_frame
         self.loading_frame = ttk.Frame(self.center_frame)
         self.loading_frame.pack(pady=30)
-        self.loading_label = ttk.Label(self.loading_frame, textvariable=self.loading_status, font=("Helvetica", 14))
+        self.loading_label = ttk.Label(
+            self.loading_frame, textvariable=self.loading_status, font=("Helvetica", 14)
+        )
         self.loading_label.pack(pady=(0, 10))
-        self.loading_progress = ttk.Progressbar(self.loading_frame, mode="determinate", length=300, maximum=total)
+        self.loading_progress = ttk.Progressbar(
+            self.loading_frame, mode="determinate", length=300, maximum=total
+        )
         self.loading_progress.pack()
         self.root.update()
         errors = []
         for idx, engine in enumerate(engines, 1):
             self.loading_status.set(f"Loading {engine}...")
-            self.loading_progress['value'] = idx - 1
+            self.loading_progress["value"] = idx - 1
             self.root.update()
             try:
                 if engine == "PaddleOCR":
-                    from OCR_Modules.paddleOCR import initialize_ocr_SLANet_LCNetV2
+                    from OCR_Modules.paddleOCR import \
+                        initialize_ocr_SLANet_LCNetV2
+
                     self.ocr_models[engine] = initialize_ocr_SLANet_LCNetV2()
                 elif engine == "Tesseract":
                     from OCR_Modules.tesseractOCR import initialize_tesseract
+
                     self.ocr_models[engine] = initialize_tesseract(get_tessbin_path())
                 elif engine == "EasyOCR":
                     from OCR_Modules.easyOCR import initialize_easyocr
+
                     self.ocr_models[engine] = initialize_easyocr()
-                logger.info(f"{engine} preloaded successfully.")
             except Exception as e:
                 logger.error(f"Error preloading {engine}: {str(e)}", exc_info=True)
                 errors.append(f"{engine}: {str(e)}")
-            self.loading_progress['value'] = idx
+            self.loading_progress["value"] = idx
             self.root.update()
         self.loading_frame.destroy()
         if errors:
-            messagebox.showerror("OCR Engine Preload Error", "\n".join(errors), parent=self.root)
+            messagebox.showerror(
+                "OCR Engine Preload Error", "\n".join(errors), parent=self.root
+            )
+
+        logger.info(f"{engine} preloaded successfully.")
+        self.status_label.config(
+            text="OCR engines loaded successfully. You can now upload an image."
+        )
 
     def setup_ui(self):
         # Main frame
@@ -317,9 +371,15 @@ class OCRApp:
             self.loading_status.set("Processing image...")
             self.loading_frame = ttk.Frame(self.center_frame)
             self.loading_frame.pack(pady=30)
-            self.loading_label = ttk.Label(self.loading_frame, textvariable=self.loading_status, font=("Helvetica", 14))
+            self.loading_label = ttk.Label(
+                self.loading_frame,
+                textvariable=self.loading_status,
+                font=("Helvetica", 14),
+            )
             self.loading_label.pack(pady=(0, 10))
-            self.loading_progress = ttk.Progressbar(self.loading_frame, mode="indeterminate", length=300)
+            self.loading_progress = ttk.Progressbar(
+                self.loading_frame, mode="indeterminate", length=300
+            )
             self.loading_progress.pack()
             self.loading_progress.start()
             self.root.update()
@@ -356,9 +416,9 @@ class OCRApp:
                 text=f"Error: {str(e)}\nPlease try a different image or OCR engine."
             )
         finally:
-            if hasattr(self, 'loading_progress'):
+            if hasattr(self, "loading_progress"):
                 self.loading_progress.stop()
-            if hasattr(self, 'loading_frame') and self.loading_frame.winfo_exists():
+            if hasattr(self, "loading_frame") and self.loading_frame.winfo_exists():
                 self.loading_frame.destroy()
             self.root.update()
 
@@ -374,7 +434,7 @@ class OCRApp:
 
         if not data:
             raise ValueError("No data extracted from image.")
-        
+
         # Group data into rows
         rows = paddle_group_into_rows(data)
 
@@ -467,7 +527,9 @@ class OCRApp:
                 text=f"Error: {str(ve)}\nPlease try a different image or OCR engine."
             )
         except Exception as e:
-            logger.error(f"Unexpected error in Tesseract processing: {str(e)}", exc_info=True)
+            logger.error(
+                f"Unexpected error in Tesseract processing: {str(e)}", exc_info=True
+            )
             self.status_label.config(
                 text=f"Unexpected error: {str(e)}\nPlease try a different image or OCR engine."
             )
@@ -528,7 +590,9 @@ class OCRApp:
                 text=f"Error: {str(ve)}\nPlease try a different image or OCR engine."
             )
         except Exception as e:
-            logger.error(f"Unexpected error in EasyOCR processing: {str(e)}", exc_info=True)
+            logger.error(
+                f"Unexpected error in EasyOCR processing: {str(e)}", exc_info=True
+            )
             self.status_label.config(
                 text=f"Unexpected error: {str(e)}\nPlease try a different image or OCR engine."
             )
@@ -848,6 +912,7 @@ class OCRApp:
 
 if __name__ == "__main__":
     sys.excepthook = handle_uncaught_exception
+    close_splash()  # Close splash before showing main UI
     root = ttk.Window(themename="cosmo")
     app = OCRApp(root)
     root.mainloop()
