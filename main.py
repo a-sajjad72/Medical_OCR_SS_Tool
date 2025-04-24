@@ -45,14 +45,10 @@ ensure_locale()
 import logging
 import os
 import site
-import sys
-import threading
 import time
-import tkinter as tk
 from tkinter import filedialog, messagebox
 
 import ttkbootstrap as ttk
-from PIL import Image, ImageTk
 from ttkbootstrap.constants import *
 
 from screenshot import capture_screenshot
